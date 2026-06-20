@@ -1,0 +1,143 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+    --font-serif: "Instrument Serif", Georgia, serif;
+    --ease-luxe: cubic-bezier(0.16, 1, 0.3, 1);
+    color-scheme: light;
+  }
+
+  * {
+    @apply border-paper-edge;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: auto; /* Lenis owns scrolling */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-feature-settings: "ss01", "cv01", "cv11";
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    @apply bg-ink text-paper;
+  }
+
+  /* Focus visibility for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ink ring-offset-2 ring-offset-paper;
+    border-radius: 4px;
+  }
+
+  /* Honour user motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-shell px-gutter;
+  }
+
+  .eyebrow {
+    @apply text-eyebrow uppercase text-ink-faint;
+  }
+
+  /* Glass surface */
+  .glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 12px 40px -16px rgba(10, 10, 10, 0.18);
+  }
+
+  /* Premium primary button */
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-ink px-7 py-3.5 text-sm font-medium text-paper transition-all duration-500 ease-luxe;
+  }
+  .btn-primary::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent;
+    transition: transform 0.8s var(--ease-luxe);
+  }
+  .btn-primary:hover {
+    @apply -translate-y-0.5 shadow-[0_20px_40px_-16px_rgba(10,10,10,0.55)];
+  }
+  .btn-primary:hover::after {
+    @apply translate-x-full;
+  }
+  .btn-primary:active {
+    @apply translate-y-0 scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-ink/15 px-7 py-3.5 text-sm font-medium text-ink transition-all duration-500 ease-luxe hover:border-ink/40 hover:bg-ink/[0.03] active:scale-[0.98];
+  }
+
+  .link-underline {
+    @apply relative inline-block;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute -bottom-0.5 left-0 h-px w-full origin-right scale-x-0 bg-current transition-transform duration-500 ease-luxe;
+  }
+  .link-underline:hover::after {
+    @apply origin-left scale-x-100;
+  }
+
+  .text-gradient {
+    background: linear-gradient(120deg, #0a0a0a 0%, #4a4a4f 55%, #0a0a0a 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-paper-edge to-transparent;
+  }
+}
+
+@layer utilities {
+  .grain::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .perspective {
+    perspective: 1600px;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
