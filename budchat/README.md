@@ -1,0 +1,86 @@
+# BudChat
+
+Мобильный PWA-мессенджер для строительных бригад. Чат, фото, задачи и смета
+привязаны не к дате, а к **объекту стройки** и его **этапу** (Подготовка →
+Демонтаж → Электрика → Сантехника → Штукатурка → Стяжка → Плитка → Ламинат →
+Покраска → Сдача).
+
+Стек: Next.js 14 (App Router) + TypeScript + Tailwind CSS + PostgreSQL (Prisma) +
+NextAuth.js + Socket.io.
+
+## Быстрый старт (Docker)
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Приложение поднимется на `http://localhost:3000`, база данных — в контейнере
+`postgres`. Миграции применяются автоматически при старте контейнера `app`.
+
+Чтобы заполнить демо-данными (три пользователя, объект, этапы, задача, смета,
+чек-лист):
+
+```bash
+docker compose exec app npx tsx prisma/seed.ts
+```
+
+## Локальная разработка
+
+```bash
+npm install
+cp .env.example .env          # укажите DATABASE_URL своей PostgreSQL
+docker compose up -d postgres # либо своя локальная PostgreSQL
+npx prisma migrate dev
+npm run prisma:seed
+npm run dev
+```
+
+`npm run dev` запускает `server.js` — кастомный Node-сервер, оборачивающий
+Next.js и поднимающий Socket.io на том же порту (`/socket.io`) для чата и
+живых обновлений фото/задач/сметы/чек-листа.
+
+## Демо-доступ
+
+После `npm run prisma:seed`:
+
+| Email | Пароль | Роль |
+|---|---|---|
+| prorab@budchat.dev | password123 | Админ |
+| master@budchat.dev | password123 | Рабочий |
+| client@budchat.dev | password123 | Заказчик |
+
+## Структура
+
+```
+prisma/schema.prisma        Модели: User, Project, ProjectMember, Stage,
+                             Message, Photo, Task, Estimate, EstimateHistory,
+                             ChecklistItem, Signature, Visit
+server.js                   Custom server: Next.js + Socket.io
+src/app/api/**               REST API (проекты, участники, этапы, чат, фото,
+                             задачи, смета+история, чек-лист, подпись)
+src/app/(pages)             Список объектов → объект (этапы/участники/
+                             календарь) → этап (чат/фото/задачи/смета/приёмка)
+src/components              UI-компоненты (мобильный, тёмная тема, крупные
+                             кнопки для работы в перчатках)
+public/manifest.json,sw.js  PWA-манифест и service worker (офлайн-кэш)
+```
+
+## Роли и права
+
+- **ADMIN** (прораб) — полный доступ: участники, этапы, задачи, смета.
+- **WORKER** (мастер/рабочий) — чат, фото, задачи, смета, статус этапов.
+- **CLIENT** (заказчик) — чтение, отметка пунктов чек-листа, подпись приёмки
+  пальцем, перевод задачи из статуса «На проверке» в «Готово».
+
+## Цветовая индикация этапов
+
+Серый — не начато, жёлтый — в работе, зелёный — готово, красный — проблема.
+Подпись заказчика на чек-листе приёмки автоматически переводит этап в статус
+«Готово».
+
+## PWA
+
+`public/icons/icon.svg` — placeholder-иконка (векторная, подходит для
+установки как есть). Замените на PNG 192×192/512×512 при необходимости точных
+растровых иконок для App Store/Play-подобных сборок (TWA).

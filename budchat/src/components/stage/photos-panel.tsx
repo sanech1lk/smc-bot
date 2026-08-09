@@ -1,0 +1,174 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useStageSocket } from "@/lib/use-stage-socket";
+import type { PhotoSummary, PhotoTag } from "@/types/models";
+
+const TAG_LABEL: Record<PhotoTag, string> = {
+  BEFORE: "До",
+  AFTER: "После",
+  PROBLEM: "Проблема",
+  CHECKED: "Проверено"
+};
+
+const TAG_COLOR: Record<PhotoTag, string> = {
+  BEFORE: "bg-status-gray/20 text-text-secondary",
+  AFTER: "bg-status-green/20 text-status-green",
+  PROBLEM: "bg-status-red/20 text-status-red",
+  CHECKED: "bg-brand/20 text-brand-light"
+};
+
+export function PhotosPanel({ stageId }: { stageId: string }) {
+  const [photos, setPhotos] = useState<PhotoSummary[]>([]);
+  const [filter, setFilter] = useState<PhotoTag | "ALL">("ALL");
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTag, setUploadTag] = useState<PhotoTag>("BEFORE");
+  const [preview, setPreview] = useState<PhotoSummary | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const socket = useStageSocket(stageId);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      const url = filter === "ALL" ? `/api/stages/${stageId}/photos` : `/api/stages/${stageId}/photos?tag=${filter}`;
+      const res = await fetch(url);
+      if (res.ok && !cancelled) {
+        const data = await res.json();
+        setPhotos(data.photos);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stageId, filter]);
+
+  useEffect(() => {
+    function onNew(photo: PhotoSummary) {
+      setPhotos((prev) => (prev.some((p) => p.id === photo.id) ? prev : [photo, ...prev]));
+    }
+    function onDeleted({ id }: { id: string }) {
+      setPhotos((prev) => prev.filter((p) => p.id !== id));
+    }
+    socket.on("photo:new", onNew);
+    socket.on("photo:deleted", onDeleted);
+    return () => {
+      socket.off("photo:new", onNew);
+      socket.off("photo:deleted", onDeleted);
+    };
+  }, [socket]);
+
+  const visiblePhotos = filter === "ALL" ? photos : photos.filter((p) => p.tag === filter);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("tag", uploadTag);
+
+    const res = await fetch(`/api/stages/${stageId}/photos`, { method: "POST", body: formData });
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+
+    if (res.ok) {
+      const data = await res.json();
+      setPhotos((prev) => [data.photo, ...prev]);
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "Не удалось загрузить фото");
+    }
+  }
+
+  return (
+    <div className="px-4 py-4">
+      <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+        <FilterChip label="Все" active={filter === "ALL"} onClick={() => setFilter("ALL")} />
+        {(Object.keys(TAG_LABEL) as PhotoTag[]).map((tag) => (
+          <FilterChip key={tag} label={TAG_LABEL[tag]} active={filter === tag} onClick={() => setFilter(tag)} />
+        ))}
+      </div>
+
+      <div className="mb-4 card space-y-3">
+        <p className="font-semibold">Загрузить фото</p>
+        <div className="flex gap-2 overflow-x-auto">
+          {(Object.keys(TAG_LABEL) as PhotoTag[]).map((tag) => (
+            <button
+              key={tag}
+              onClick={() => setUploadTag(tag)}
+              className={`chip flex-shrink-0 py-2 ${
+                uploadTag === tag ? "bg-brand text-white" : "bg-bg-elevated text-text-secondary"
+              }`}
+            >
+              {TAG_LABEL[tag]}
+            </button>
+          ))}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+          id="photo-input"
+        />
+        <label htmlFor="photo-input" className="btn-primary w-full cursor-pointer">
+          {uploading ? "Загружаем…" : "📷 Сделать / выбрать фото"}
+        </label>
+      </div>
+
+      {loading && <p className="text-center text-text-secondary">Загрузка…</p>}
+      {!loading && visiblePhotos.length === 0 && (
+        <p className="text-center text-text-secondary">Нет фото с этим тегом</p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {visiblePhotos.map((photo) => (
+          <button
+            key={photo.id}
+            onClick={() => setPreview(photo)}
+            className="relative aspect-square overflow-hidden rounded-xl bg-bg-card"
+          >
+            <Image src={photo.url} alt={photo.description ?? "Фото"} fill className="object-cover" sizes="200px" />
+            <span className={`absolute left-1.5 top-1.5 chip py-0.5 text-xs ${TAG_COLOR[photo.tag]}`}>
+              {TAG_LABEL[photo.tag]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-black/95 p-4"
+          onClick={() => setPreview(null)}
+        >
+          <div className="relative mx-auto my-auto h-[70vh] w-full max-w-lg">
+            <Image src={preview.url} alt={preview.description ?? "Фото"} fill className="object-contain" />
+          </div>
+          <div className="mx-auto w-full max-w-lg text-center text-white">
+            <span className={`chip ${TAG_COLOR[preview.tag]}`}>{TAG_LABEL[preview.tag]}</span>
+            {preview.description && <p className="mt-2">{preview.description}</p>}
+            <p className="mt-1 text-sm text-white/60">Загрузил: {preview.uploadedBy.name}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`chip flex-shrink-0 py-2 ${active ? "bg-brand text-white" : "bg-bg-card text-text-secondary"}`}
+    >
+      {label}
+    </button>
+  );
+}

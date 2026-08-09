@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: budchat
+      POSTGRES_PASSWORD: budchat
+      POSTGRES_DB: budchat
+    ports:
+      - "5432:5432"
+    volumes:
+      - budchat_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U budchat -d budchat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://budchat:budchat@postgres:5432/budchat?schema=public
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: change-me-to-a-random-32-byte-string
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - budchat_uploads:/app/public/uploads
+    command: sh -c "npx prisma migrate deploy && node server.js"
+
+volumes:
+  budchat_pgdata:
+  budchat_uploads:

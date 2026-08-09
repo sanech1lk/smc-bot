@@ -1,0 +1,56 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
+import { requireProjectRole, getMembership } from "@/lib/access";
+import { ProjectRole } from "@prisma/client";
+
+const createVisitSchema = z.object({
+  date: z.string().datetime().or(z.string().min(1)),
+  stageId: z.string().optional(),
+  crewName: z.string().optional(),
+  note: z.string().optional()
+});
+
+export async function GET(req: Request, { params }: { params: { id: string } }) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
+  const membership = await getMembership(params.id, user.id);
+  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+
+  const visits = await prisma.visit.findMany({
+    where: { projectId: params.id },
+    include: { stage: { select: { id: true, name: true } } },
+    orderBy: { date: "asc" }
+  });
+
+  return NextResponse.json({ visits });
+}
+
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
+  const access = await requireProjectRole(params.id, user.id, [ProjectRole.ADMIN, ProjectRole.WORKER]);
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status });
+
+  const body = await req.json().catch(() => null);
+  const parsed = createVisitSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+  }
+
+  const visit = await prisma.visit.create({
+    data: {
+      projectId: params.id,
+      stageId: parsed.data.stageId || null,
+      date: new Date(parsed.data.date),
+      crewName: parsed.data.crewName,
+      note: parsed.data.note
+    },
+    include: { stage: { select: { id: true, name: true } } }
+  });
+
+  return NextResponse.json({ visit }, { status: 201 });
+}

@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: #0f1115;
+  color: #f3f4f6;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+/* Large, glove-friendly tap targets everywhere by default */
+button,
+a.btn,
+input,
+select,
+textarea {
+  min-height: 3.25rem;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #333a4d;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-lg font-semibold
+      transition active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none select-none;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white shadow-card active:bg-brand-dark;
+  }
+  .btn-secondary {
+    @apply btn bg-bg-elevated text-text-primary border border-border-soft active:bg-bg-card;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-text-secondary active:bg-bg-card;
+  }
+  .btn-danger {
+    @apply btn bg-status-red/90 text-white active:bg-status-red;
+  }
+  .input {
+    @apply w-full rounded-xl border border-border bg-bg-soft px-4 py-3 text-lg text-text-primary
+      placeholder:text-text-muted outline-none focus:border-brand;
+  }
+  .card {
+    @apply rounded-2xl border border-border bg-bg-card p-4 shadow-card;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium;
+  }
+  .status-dot {
+    @apply inline-block h-3 w-3 rounded-full flex-shrink-0;
+  }
+  .bottom-nav-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .top-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
