@@ -117,6 +117,53 @@ npx web-push generate-vapid-keys
 
 ## PWA
 
-`public/icons/icon.svg` — placeholder-иконка (векторная, подходит для
-установки как есть). Замените на PNG 192×192/512×512 при необходимости точных
-растровых иконок для App Store/Play-подобных сборок (TWA).
+`public/icons/` содержит и векторную (`icon.svg`), и растровые иконки
+(`icon-32.png`, `icon-192.png`, `icon-512.png`, `icon-512-maskable.png`) —
+последние нужны для установки как приложения и обязательны для публикации
+в Google Play через TWA. Если захотите свой брендинг — перегенерируйте эти
+файлы из нового `icon.svg`/`icon-maskable.svg` (любой SVG→PNG рендерер) и
+не меняйте имена файлов, они уже прописаны в `manifest.json`.
+
+## Публикация в Google Play (TWA)
+
+Google Play не принимает голый PWA — нужна тонкая нативная обёртка
+**TWA (Trusted Web Activity)**, которая открывает уже задеплоенный сайт.
+Всё ниже имеет смысл только после того, как приложение развёрнуто на
+боевом домене с HTTPS (см. `docker-compose.yml` — этот же образ годится
+для любого Docker-хостинга).
+
+**Понадобится на компьютере, откуда собираете:** Node.js, JDK 17+
+(Bubblewrap сам предложит поставить Android SDK при первом запуске).
+
+```bash
+npm install -g @bubblewrap/cli
+
+# Инициализация — Bubblewrap сам прочитает manifest.json с вашего домена
+# и предложит пакет вида dev.budchat.twa (можно оставить)
+bubblewrap init --manifest="https://ВАШ_ДОМЕН/manifest.json"
+
+# На вопросах установите:
+#   Application ID: dev.budchat.twa (или свой — тогда поправьте
+#     public/.well-known/assetlinks.json под свой package_name)
+#   Signing key: дайте Bubblewrap создать новый keystore и ЗАПОМНИТЕ пароли —
+#     без этого файла вы не сможете выпускать обновления приложения
+
+bubblewrap build
+```
+
+Дальше — обязательный шаг верификации домена (без него в приложении будет
+видна адресная строка браузера):
+
+```bash
+keytool -list -v -keystore android.keystore -alias android
+```
+
+Скопируйте `SHA256` из вывода и вставьте в
+`public/.well-known/assetlinks.json` вместо
+`REPLACE_WITH_SHA256_FROM_YOUR_ANDROID_KEYSTORE`, задеплойте изменение —
+файл должен отдаваться по адресу `https://ВАШ_ДОМЕН/.well-known/assetlinks.json`.
+
+Готовый `app-release-signed.aab` из `bubblewrap build` загружается в
+[Google Play Console](https://play.google.com/console) (аккаунт — разово
+$25). Там же: скриншоты, описание, ссылка на политику конфиденциальности
+(обязательна), анкета Data Safety.
