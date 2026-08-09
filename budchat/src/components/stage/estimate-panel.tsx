@@ -127,7 +127,7 @@ export function EstimatePanel({ stageId, myRole }: { stageId: string; myRole: Pr
         </table>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {canEdit && (
           <button className="btn-secondary flex-1" onClick={() => setFormOpen((v) => !v)}>
             {formOpen ? "Отмена" : "+ Позиция"}
@@ -136,6 +136,14 @@ export function EstimatePanel({ stageId, myRole }: { stageId: string; myRole: Pr
         <button className="btn-ghost flex-1 border border-border-soft" onClick={loadHistory}>
           История изменений
         </button>
+        <a
+          href={`/api/stages/${stageId}/estimate/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-ghost flex-1 border border-border-soft text-center"
+        >
+          📄 Скачать PDF
+        </a>
       </div>
 
       {formOpen && <NewEstimateForm stageId={stageId} onCreated={(item) => setItems((prev) => [...prev, item])} />}

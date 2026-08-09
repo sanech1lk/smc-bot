@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { format } from "date-fns";
 import { useStageSocket } from "@/lib/use-stage-socket";
+import { MicButton } from "@/components/mic-button";
 import type { ProjectMemberSummary, ProjectRole, TaskStatus, TaskSummary } from "@/types/models";
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -193,7 +194,16 @@ function NewTaskForm({
 
   return (
     <form onSubmit={handleSubmit} className="card mb-3 space-y-3">
-      <input className="input" placeholder="Название задачи" required value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="flex gap-2">
+        <input
+          className="input flex-1"
+          placeholder="Название задачи"
+          required
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <MicButton onResult={(spoken) => setTitle((prev) => (prev ? `${prev} ${spoken}` : spoken))} />
+      </div>
       <textarea
         className="input"
         placeholder="Описание (необязательно)"

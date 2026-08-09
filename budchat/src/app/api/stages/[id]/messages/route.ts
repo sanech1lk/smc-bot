@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getMembership, getStageWithProjectId } from "@/lib/access";
 import { MessageType } from "@prisma/client";
 import { emitToStage } from "@/lib/socket-server";
+import { sendPushToProjectMembers } from "@/lib/push-server";
 
 const createMessageSchema = z.object({
   content: z.string().min(1).max(4000),
@@ -65,6 +66,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   });
 
   emitToStage(params.id, "message:new", message);
+
+  sendPushToProjectMembers(
+    stageRef.projectId,
+    {
+      title: `${message.sender.name} · ${stageRef.name}`,
+      body: message.content,
+      url: `/projects/${stageRef.projectId}/stages/${params.id}`,
+      tag: `stage-${params.id}`
+    },
+    user.id
+  ).catch((err) => console.error("Push notify failed", err));
 
   return NextResponse.json({ message }, { status: 201 });
 }

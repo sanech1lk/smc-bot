@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getMembership } from "@/lib/access";
 import { TaskStatus } from "@prisma/client";
 import { emitToStage } from "@/lib/socket-server";
+import { sendPushToUsers } from "@/lib/push-server";
 
 const updateSchema = z.object({
   title: z.string().min(2).max(200).optional(),
@@ -21,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const task = await prisma.task.findUnique({ where: { id: params.id } });
   if (!task) return NextResponse.json({ error: "Задача не найдена" }, { status: 404 });
 
-  const stage = await prisma.stage.findUnique({ where: { id: task.stageId }, select: { projectId: true } });
+  const stage = await prisma.stage.findUnique({ where: { id: task.stageId }, select: { projectId: true, name: true } });
   const membership = await getMembership(stage!.projectId, user.id);
   if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
 
@@ -54,6 +55,19 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   });
 
   emitToStage(task2.stageId, "task:updated", task2);
+
+  if (task2.assigneeId && task2.assigneeId !== task.assigneeId) {
+    sendPushToUsers(
+      [task2.assigneeId],
+      {
+        title: `Задача назначена · ${stage!.name}`,
+        body: task2.title,
+        url: `/projects/${stage!.projectId}/stages/${task2.stageId}`,
+        tag: `task-${task2.id}`
+      },
+      user.id
+    ).catch((err) => console.error("Push notify failed", err));
+  }
 
   return NextResponse.json({ task: task2 });
 }

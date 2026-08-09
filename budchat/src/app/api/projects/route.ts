@@ -7,7 +7,8 @@ import { DEFAULT_STAGE_NAMES } from "@/lib/stages";
 
 const createProjectSchema = z.object({
   name: z.string().min(2, "Введите название объекта"),
-  address: z.string().min(3, "Введите адрес")
+  address: z.string().min(3, "Введите адрес"),
+  stageNames: z.array(z.string().min(1).max(60)).min(1).max(30).optional()
 });
 
 export async function GET() {
@@ -41,6 +42,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
   }
 
+  const stageNames = parsed.data.stageNames?.length ? parsed.data.stageNames : DEFAULT_STAGE_NAMES;
+
   const project = await prisma.project.create({
     data: {
       name: parsed.data.name,
@@ -49,7 +52,7 @@ export async function POST(req: Request) {
         create: { userId: user.id, role: ProjectRole.ADMIN }
       },
       stages: {
-        create: DEFAULT_STAGE_NAMES.map((name, index) => ({ name, order: index }))
+        create: stageNames.map((name, index) => ({ name, order: index }))
       }
     },
     include: {

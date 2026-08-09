@@ -61,6 +61,9 @@ export interface PhotoSummary {
   url: string;
   tag: PhotoTag;
   description?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  accuracy?: number | null;
   createdAt: string;
   uploadedBy: UserSummary;
 }
@@ -113,4 +116,29 @@ export interface SignatureSummary {
   signerName: string;
   imageData: string;
   createdAt: string;
+}
+
+export type PinStatus = "OPEN" | "RESOLVED";
+
+export interface PlanSummary {
+  id: string;
+  projectId: string;
+  name: string;
+  url: string;
+  createdAt: string;
+  _count?: { pins: number };
+}
+
+export interface PlanPinSummary {
+  id: string;
+  planId: string;
+  x: number;
+  y: number;
+  title: string;
+  description?: string | null;
+  status: PinStatus;
+  createdAt: string;
+  createdBy: UserSummary;
+  stage?: { id: string; name: string } | null;
+  photo?: { id: string; url: string } | null;
 }

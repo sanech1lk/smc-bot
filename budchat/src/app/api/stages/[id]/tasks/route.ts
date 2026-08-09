@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getMembership, getStageWithProjectId } from "@/lib/access";
 import { TaskStatus } from "@prisma/client";
 import { emitToStage } from "@/lib/socket-server";
+import { sendPushToUsers } from "@/lib/push-server";
 
 const createTaskSchema = z.object({
   title: z.string().min(2).max(200),
@@ -77,6 +78,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   });
 
   emitToStage(params.id, "task:new", task);
+
+  if (task.assigneeId) {
+    sendPushToUsers(
+      [task.assigneeId],
+      {
+        title: `Новая задача · ${stageRef.name}`,
+        body: task.title,
+        url: `/projects/${stageRef.projectId}/stages/${params.id}`,
+        tag: `task-${task.id}`
+      },
+      user.id
+    ).catch((err) => console.error("Push notify failed", err));
+  }
 
   return NextResponse.json({ task }, { status: 201 });
 }

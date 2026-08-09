@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { TopBar } from "@/components/top-bar";
 import { ProjectCard } from "@/components/project-card";
 import { NewProjectDialog } from "@/components/new-project-dialog";
+import { NotificationsToggle } from "@/components/notifications-toggle";
 import type { ProjectSummary } from "@/types/models";
 
 export default function ProjectsPage() {
@@ -24,7 +25,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="pb-24">
-      <TopBar title="Объекты" />
+      <TopBar title="Объекты" right={<NotificationsToggle />} />
 
       <div className="px-4 py-4">
         {projects === null && <p className="text-center text-text-secondary">Загрузка…</p>}

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { getMembership, getStageWithProjectId } from "@/lib/access";
-import { StageStatus } from "@prisma/client";
+import { getMembership, getStageWithProjectId, requireProjectRole } from "@/lib/access";
+import { ProjectRole, StageStatus } from "@prisma/client";
 import { emitToStage } from "@/lib/socket-server";
 
 const updateSchema = z.object({
@@ -56,4 +56,24 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   emitToStage(stage.id, "stage:updated", stage);
 
   return NextResponse.json({ stage });
+}
+
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+
+  const stageRef = await getStageWithProjectId(params.id);
+  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+
+  const access = await requireProjectRole(stageRef.projectId, user.id, [ProjectRole.ADMIN]);
+  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status });
+
+  const remaining = await prisma.stage.count({ where: { projectId: stageRef.projectId } });
+  if (remaining <= 1) {
+    return NextResponse.json({ error: "Нельзя удалить последний этап объекта" }, { status: 400 });
+  }
+
+  await prisma.stage.delete({ where: { id: params.id } });
+
+  return NextResponse.json({ ok: true });
 }

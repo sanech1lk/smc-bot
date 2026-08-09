@@ -57,6 +57,11 @@ enum TaskStatus {
   DONE
 }
 
+enum PinStatus {
+  OPEN
+  RESOLVED
+}
+
 // ---------------------------------------------------------------------------
 // Core models
 // ---------------------------------------------------------------------------
@@ -71,15 +76,33 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships    ProjectMember[]
-  messages       Message[]
-  uploadedPhotos Photo[]
-  assignedTasks  Task[]          @relation("TaskAssignee")
-  createdTasks   Task[]          @relation("TaskCreator")
-  estimateEdits  EstimateHistory[]
-  signatures     Signature[]
+  memberships      ProjectMember[]
+  messages         Message[]
+  uploadedPhotos   Photo[]
+  assignedTasks    Task[]            @relation("TaskAssignee")
+  createdTasks     Task[]            @relation("TaskCreator")
+  estimateEdits    EstimateHistory[]
+  signatures       Signature[]
+  pushSubscriptions PushSubscription[]
+  planPins         PlanPin[]
 
   @@map("users")
+}
+
+// A browser's Web Push subscription for a given user, used to deliver
+// notifications (new messages, task assignments) when the app is closed.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model Project {
@@ -94,8 +117,48 @@ model Project {
   members ProjectMember[]
   stages  Stage[]
   visits  Visit[]
+  plans   Plan[]
 
   @@map("projects")
+}
+
+// An uploaded floor plan / drawing that crew members can drop location pins on
+model Plan {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  url       String
+  createdAt DateTime @default(now())
+
+  project Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pins    PlanPin[]
+
+  @@index([projectId])
+  @@map("plans")
+}
+
+// A pin dropped on a Plan at relative (x, y) coordinates (0..1), marking an
+// issue, a photo location, or a note tied to a spot on the drawing.
+model PlanPin {
+  id          String    @id @default(cuid())
+  planId      String
+  x           Float
+  y           Float
+  title       String
+  description String?
+  status      PinStatus @default(OPEN)
+  stageId     String?
+  photoId     String?
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  plan      Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  stage     Stage? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  photo     Photo? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+  createdBy User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("plan_pins")
 }
 
 model ProjectMember {
@@ -129,6 +192,7 @@ model Stage {
   checklistItems ChecklistItem[]
   signatures     Signature[]
   visits         Visit[]
+  planPins       PlanPin[]
 
   @@unique([projectId, order])
   @@map("stages")
@@ -157,10 +221,16 @@ model Photo {
   url          String
   tag          PhotoTag @default(BEFORE)
   description  String?
+  // Geolocation captured at shoot time (also burned into the image itself
+  // as a visible stamp) — lets a photo double as tamper-evident site proof.
+  lat          Float?
+  lng          Float?
+  accuracy     Float?
   createdAt    DateTime @default(now())
 
-  stage      Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  uploadedBy User  @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  stage      Stage     @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  uploadedBy User      @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  planPins   PlanPin[]
 
   @@index([stageId, tag])
   @@map("photos")

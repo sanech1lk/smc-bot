@@ -24,6 +24,6 @@ export async function requireProjectRole(
 export async function getStageWithProjectId(stageId: string) {
   return prisma.stage.findUnique({
     where: { id: stageId },
-    select: { id: true, projectId: true }
+    select: { id: true, projectId: true, name: true }
   });
 }

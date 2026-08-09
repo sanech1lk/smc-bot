@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useStageSocket } from "@/lib/use-stage-socket";
+import { stampPhoto } from "@/lib/geo-stamp";
+import { enqueueOutboxItem, getAllOutboxItems, type OutboxPhotoItem } from "@/lib/outbox";
+import { useOutboxFlush } from "@/lib/use-outbox-flush";
 import type { PhotoSummary, PhotoTag } from "@/types/models";
 
 const TAG_LABEL: Record<PhotoTag, string> = {
@@ -19,8 +22,15 @@ const TAG_COLOR: Record<PhotoTag, string> = {
   CHECKED: "bg-brand/20 text-brand-light"
 };
 
+interface PendingPhoto {
+  id: string;
+  blobUrl: string;
+  tag: PhotoTag;
+}
+
 export function PhotosPanel({ stageId }: { stageId: string }) {
   const [photos, setPhotos] = useState<PhotoSummary[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [filter, setFilter] = useState<PhotoTag | "ALL">("ALL");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -46,6 +56,22 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
     };
   }, [stageId, filter]);
 
+  // Restore any photos that were queued offline in a previous session.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const items = await getAllOutboxItems();
+      if (cancelled) return;
+      const restored = items
+        .filter((i): i is OutboxPhotoItem => i.kind === "photo" && i.stageId === stageId)
+        .map((i) => ({ id: i.id, blobUrl: URL.createObjectURL(i.blob), tag: i.tag as PhotoTag }));
+      setPendingPhotos(restored);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [stageId]);
+
   useEffect(() => {
     function onNew(photo: PhotoSummary) {
       setPhotos((prev) => (prev.some((p) => p.id === photo.id) ? prev : [photo, ...prev]));
@@ -61,28 +87,89 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
     };
   }, [socket]);
 
+  useOutboxFlush({
+    onPhotoSent: (item, saved) => {
+      if (item.stageId !== stageId) return;
+      setPendingPhotos((prev) => {
+        const match = prev.find((p) => p.id === item.id);
+        if (match) URL.revokeObjectURL(match.blobUrl);
+        return prev.filter((p) => p.id !== item.id);
+      });
+      const savedPhoto = saved as PhotoSummary;
+      setPhotos((prev) => (prev.some((p) => p.id === savedPhoto.id) ? prev : [savedPhoto, ...prev]));
+    }
+  });
+
   const visiblePhotos = filter === "ALL" ? photos : photos.filter((p) => p.tag === filter);
+  const visiblePending = filter === "ALL" ? pendingPhotos : pendingPhotos.filter((p) => p.tag === filter);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("tag", uploadTag);
+    try {
+      let stamped;
+      try {
+        // Burn a date + GPS-coordinate stamp into the photo before it ever
+        // leaves the device — same idea as CompanyCam, makes the image
+        // tamper-evident site proof even if it's later shared outside the app.
+        stamped = await stampPhoto(file);
+      } catch {
+        alert("Не удалось обработать фото на этом устройстве");
+        return;
+      }
 
-    const res = await fetch(`/api/stages/${stageId}/photos`, { method: "POST", body: formData });
-    setUploading(false);
-    if (fileRef.current) fileRef.current.value = "";
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        await queueOffline(stamped);
+        return;
+      }
 
-    if (res.ok) {
-      const data = await res.json();
-      setPhotos((prev) => [data.photo, ...prev]);
-    } else {
-      const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Не удалось загрузить фото");
+      try {
+        const formData = new FormData();
+        formData.append("file", stamped.blob, "photo.jpg");
+        formData.append("tag", uploadTag);
+        if (stamped.lat != null) formData.append("lat", String(stamped.lat));
+        if (stamped.lng != null) formData.append("lng", String(stamped.lng));
+        if (stamped.accuracy != null) formData.append("accuracy", String(stamped.accuracy));
+
+        const res = await fetch(`/api/stages/${stageId}/photos`, { method: "POST", body: formData });
+
+        if (res.ok) {
+          const data = await res.json();
+          setPhotos((prev) => [data.photo, ...prev]);
+        } else if (res.status >= 500) {
+          await queueOffline(stamped);
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error ?? "Не удалось загрузить фото");
+        }
+      } catch {
+        // fetch threw — connection dropped mid-request. Queue it for later.
+        await queueOffline(stamped);
+        alert("Нет соединения — фото сохранено и загрузится, когда появится интернет");
+      }
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
     }
+  }
+
+  async function queueOffline(stamped: { blob: Blob; lat: number | null; lng: number | null; accuracy: number | null }) {
+    const id = `pending-${crypto.randomUUID()}`;
+    const item: OutboxPhotoItem = {
+      id,
+      kind: "photo",
+      stageId,
+      blob: stamped.blob,
+      tag: uploadTag,
+      lat: stamped.lat,
+      lng: stamped.lng,
+      accuracy: stamped.accuracy,
+      createdAt: Date.now()
+    };
+    await enqueueOutboxItem(item);
+    setPendingPhotos((prev) => [...prev, { id, blobUrl: URL.createObjectURL(stamped.blob), tag: uploadTag }]);
   }
 
   return (
@@ -124,11 +211,20 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
       </div>
 
       {loading && <p className="text-center text-text-secondary">Загрузка…</p>}
-      {!loading && visiblePhotos.length === 0 && (
+      {!loading && visiblePhotos.length === 0 && visiblePending.length === 0 && (
         <p className="text-center text-text-secondary">Нет фото с этим тегом</p>
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {visiblePending.map((photo) => (
+          <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-bg-card opacity-60">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photo.blobUrl} alt="Ожидает отправки" className="h-full w-full object-cover" />
+            <span className="absolute left-1.5 top-1.5 chip bg-black/60 py-0.5 text-xs text-white">
+              ⏳ ждёт сети
+            </span>
+          </div>
+        ))}
         {visiblePhotos.map((photo) => (
           <button
             key={photo.id}
@@ -155,6 +251,17 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
             <span className={`chip ${TAG_COLOR[preview.tag]}`}>{TAG_LABEL[preview.tag]}</span>
             {preview.description && <p className="mt-2">{preview.description}</p>}
             <p className="mt-1 text-sm text-white/60">Загрузил: {preview.uploadedBy.name}</p>
+            {preview.lat != null && preview.lng != null && (
+              <a
+                href={`https://maps.google.com/?q=${preview.lat},${preview.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="mt-2 inline-block text-sm text-brand-light underline"
+              >
+                📍 Открыть место на карте
+              </a>
+            )}
           </div>
         </div>
       )}

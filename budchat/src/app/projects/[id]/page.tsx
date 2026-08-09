@@ -6,9 +6,10 @@ import { TopBar } from "@/components/top-bar";
 import { StageList } from "@/components/stage-list";
 import { MembersPanel } from "@/components/members-panel";
 import { VisitsCalendar } from "@/components/visits-calendar";
+import { PlanPanel } from "@/components/plan-panel";
 import type { ProjectMemberSummary, ProjectRole, StageSummary, VisitSummary } from "@/types/models";
 
-type Tab = "stages" | "members" | "calendar";
+type Tab = "stages" | "plan" | "members" | "calendar";
 
 interface ProjectDetail {
   id: string;
@@ -78,9 +79,12 @@ export default function ProjectDetailPage() {
         <p className="text-text-secondary">{project.address}</p>
       </div>
 
-      <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-10 flex gap-2 border-b border-border bg-bg px-4 py-2">
+      <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-10 flex gap-2 overflow-x-auto border-b border-border bg-bg px-4 py-2">
         <TabButton active={tab === "stages"} onClick={() => setTab("stages")}>
           Этапы
+        </TabButton>
+        <TabButton active={tab === "plan"} onClick={() => setTab("plan")}>
+          План
         </TabButton>
         <TabButton active={tab === "members"} onClick={() => setTab("members")}>
           Участники
@@ -91,7 +95,10 @@ export default function ProjectDetailPage() {
       </div>
 
       <div className="px-4 py-4">
-        {tab === "stages" && <StageList projectId={project.id} stages={project.stages} />}
+        {tab === "stages" && (
+          <StageList projectId={project.id} stages={project.stages} myRole={myRole} onChange={loadProject} />
+        )}
+        {tab === "plan" && <PlanPanel projectId={project.id} stages={project.stages} myRole={myRole} />}
         {tab === "members" && (
           <MembersPanel
             projectId={project.id}
@@ -126,7 +133,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-xl py-2.5 font-semibold transition ${
+      className={`flex-shrink-0 rounded-xl px-4 py-2.5 font-semibold transition ${
         active ? "bg-brand text-white" : "bg-bg-card text-text-secondary"
       }`}
     >
