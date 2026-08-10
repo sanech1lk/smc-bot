@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { MailPlus, QrCode, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
-import { ErrorNote, InfoNote } from "@/components/ui";
+import { Avatar, ErrorNote, InfoNote } from "@/components/ui";
 import type { ProjectMemberSummary, ProjectRole } from "@/types/models";
 
 const ROLE_LABEL: Record<ProjectRole, string> = {
@@ -190,9 +190,7 @@ export function MembersPanel({
       <div className="space-y-2">
         {members.map((m) => (
           <div key={m.id} className="card flex items-center gap-3">
-            <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-bg-elevated text-lg font-bold text-text-secondary">
-              {m.user?.name?.[0]?.toUpperCase() ?? "?"}
-            </span>
+            <Avatar name={m.user?.name ?? "?"} id={m.userId} size={42} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-semibold">{m.user?.name}</p>
               <p className="truncate text-sm text-text-secondary">{m.user?.email}</p>

@@ -113,21 +113,33 @@ export default function StagePage() {
       </div>
 
       {/* Fixed bottom tab bar: five targets fit without horizontal scrolling. */}
-      <nav className="bottom-nav-safe fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-bg/90 backdrop-blur-md lg:hidden">
-        <div className="flex">
+      <nav className="bottom-nav-safe fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-bg/85 backdrop-blur-xl lg:hidden">
+        <div className="flex px-1 pt-1.5">
           {TABS.map(({ id, label, icon: Icon }) => {
             const active = tab === id;
             return (
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`flex flex-1 flex-col items-center gap-1 py-2.5 transition-colors ${
-                  active ? "text-brand" : "text-text-muted"
-                }`}
+                className="group flex flex-1 flex-col items-center gap-1 pb-2 pt-1"
                 aria-current={active ? "page" : undefined}
               >
-                <Icon size={22} strokeWidth={active ? 2.4 : 1.9} />
-                <span className={`text-[11px] ${active ? "font-semibold" : ""}`}>{label}</span>
+                {/* The icon sits in a pill that fills in on the active tab —
+                    reads as a deliberate state rather than just a colour change. */}
+                <span
+                  className={`flex h-8 w-14 items-center justify-center rounded-full transition-all duration-200 ${
+                    active ? "bg-brand/15 text-brand" : "text-text-muted group-active:bg-bg-elevated"
+                  }`}
+                >
+                  <Icon size={21} strokeWidth={active ? 2.4 : 1.9} />
+                </span>
+                <span
+                  className={`text-[11px] leading-none transition-colors ${
+                    active ? "font-semibold text-brand" : "text-text-muted"
+                  }`}
+                >
+                  {label}
+                </span>
               </button>
             );
           })}

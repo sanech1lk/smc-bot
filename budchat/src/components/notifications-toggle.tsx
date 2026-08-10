@@ -43,7 +43,7 @@ export function NotificationsToggle() {
     <button
       onClick={handleClick}
       disabled={busy}
-      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-bg-card transition-colors active:bg-bg-elevated disabled:opacity-50 ${
+      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-bg-card transition-all active:scale-95 active:bg-bg-elevated disabled:opacity-50 ${
         status === "subscribed" ? "text-brand" : "text-text-secondary"
       }`}
       aria-label={status === "subscribed" ? "Уведомления включены" : "Включить уведомления"}

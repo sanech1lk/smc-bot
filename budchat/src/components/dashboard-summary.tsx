@@ -207,18 +207,20 @@ function StatTile({
   value: number;
   tone: "accent" | "red" | "yellow" | "muted";
 }) {
-  const toneClass = {
-    accent: "text-accent",
-    red: "text-status-red",
-    yellow: "text-status-yellow",
-    muted: "text-text-secondary"
+  const { text, chip } = {
+    accent: { text: "text-accent", chip: "bg-accent/12 text-accent" },
+    red: { text: "text-status-red", chip: "bg-status-red/12 text-status-red" },
+    yellow: { text: "text-status-yellow", chip: "bg-status-yellow/12 text-status-yellow" },
+    muted: { text: "text-text-primary", chip: "bg-bg-elevated text-text-secondary" }
   }[tone];
 
   return (
-    <div className="card">
-      <Icon size={20} className={toneClass} strokeWidth={2} />
-      <p className={`mt-2 text-3xl font-bold tabular-nums ${toneClass}`}>{value}</p>
-      <p className="mt-0.5 text-xs text-text-muted">{label}</p>
+    <div className="card transition-transform duration-200 hover:-translate-y-0.5">
+      <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${chip}`}>
+        <Icon size={18} strokeWidth={2.1} />
+      </span>
+      <p className={`mt-3 text-[2rem] font-bold leading-none tabular ${text}`}>{value}</p>
+      <p className="mt-1.5 text-xs leading-snug text-text-muted">{label}</p>
     </div>
   );
 }

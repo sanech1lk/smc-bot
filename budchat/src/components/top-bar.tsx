@@ -22,12 +22,12 @@ export function TopBar({
   showAccountActions?: boolean;
 }) {
   return (
-    <header className="top-safe sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur-md">
+    <header className="top-safe sticky top-0 z-30 border-b border-border bg-bg/80 backdrop-blur-xl">
       <div className="flex items-center gap-3 px-4 py-3">
         {backHref ? (
           <Link
             href={backHref}
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-bg-card text-text-secondary transition-colors hover:text-text-primary active:bg-bg-elevated"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-bg-card text-text-secondary transition-all hover:text-text-primary active:scale-95 active:bg-bg-elevated"
             aria-label="Назад"
           >
             <ArrowLeft size={20} strokeWidth={2.25} />
@@ -37,7 +37,7 @@ export function TopBar({
         )}
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-bold leading-tight">{title}</h1>
+          <h1 className="truncate text-[1.0625rem] font-bold leading-tight">{title}</h1>
           {subtitle && <p className="truncate text-sm text-text-secondary">{subtitle}</p>}
         </div>
 
@@ -48,7 +48,7 @@ export function TopBar({
               <ThemeToggle />
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg-card text-text-secondary transition-colors hover:text-status-red active:bg-bg-elevated"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-card text-text-secondary transition-all hover:text-status-red active:scale-95 active:bg-bg-elevated"
                 aria-label="Выйти"
                 title="Выйти"
               >

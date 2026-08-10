@@ -45,8 +45,8 @@ function ResetForm() {
   if (!token) {
     return (
       <div className="animate-in mx-auto w-full max-w-sm text-center">
-        <Logo size={60} />
-        <h1 className="mt-4 text-2xl font-bold">Ссылка недействительна</h1>
+        <Logo size={64} glow />
+        <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">Ссылка недействительна</h1>
         <p className="mt-2 text-text-secondary">Запросите восстановление пароля заново.</p>
         <Link href="/forgot-password" className="btn-primary mt-6 w-full">
           Запросить ссылку
@@ -58,8 +58,8 @@ function ResetForm() {
   return (
     <div className="animate-in mx-auto w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
-        <Logo size={60} />
-        <h1 className="mt-4 text-2xl font-bold">Новый пароль</h1>
+        <Logo size={64} glow />
+        <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">Новый пароль</h1>
         <p className="mt-1 text-text-secondary">Придумайте пароль для входа</p>
       </div>
 
@@ -95,7 +95,7 @@ function ResetForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen flex-col justify-center px-6 py-10">
+    <div className="hero-wash flex min-h-screen flex-col justify-center px-6 py-10">
       <Suspense fallback={null}>
         <ResetForm />
       </Suspense>

@@ -1,8 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { themeInitScript } from "@/components/theme";
+
+// Inter carries Cyrillic and has the tighter, more even rhythm the interface
+// is designed around; the system stack is only a fallback while it loads.
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+  variable: "--font-sans"
+});
 
 export const metadata: Metadata = {
   title: "BudChat — мессенджер для стройки",
@@ -33,7 +42,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" data-theme="dark" suppressHydrationWarning>
+    <html lang="ru" data-theme="dark" className={inter.variable} suppressHydrationWarning>
       <head>
         {/* Runs before paint so the stored theme applies without a flash. */}
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />

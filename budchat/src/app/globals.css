@@ -70,6 +70,7 @@ body {
 }
 
 body {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background-color: rgb(var(--bg));
   color: rgb(var(--text-primary));
   -webkit-tap-highlight-color: transparent;
@@ -125,7 +126,11 @@ textarea {
       transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none select-none;
   }
   .btn-primary {
-    @apply btn bg-brand text-white shadow-card hover:bg-brand-dark active:bg-brand-dark;
+    @apply btn text-white shadow-card;
+    background-image: linear-gradient(135deg, rgb(var(--brand-light)), rgb(var(--brand)));
+  }
+  .btn-primary:active {
+    background-image: linear-gradient(135deg, rgb(var(--brand)), rgb(var(--brand-dark)));
   }
   .btn-secondary {
     @apply btn bg-bg-elevated text-text-primary border border-border hover:border-border-soft active:bg-bg-card;
@@ -142,7 +147,7 @@ textarea {
       focus:border-brand focus:ring-2 focus:ring-brand/20;
   }
   .card {
-    @apply rounded-2xl border border-border bg-bg-card p-4 shadow-card;
+    @apply relative rounded-2xl border border-border bg-bg-card p-4 shadow-card;
   }
   .card-raised {
     @apply rounded-2xl border border-border bg-bg-card p-4 shadow-raised;
@@ -165,6 +170,21 @@ textarea {
 }
 
 @layer utilities {
+  /* Warm halo behind the logo / hero elements */
+  .brand-glow {
+    box-shadow: 0 10px 30px -8px rgb(var(--brand) / 0.55);
+  }
+  /* Faint brand wash used behind auth screens and the dashboard header */
+  .hero-wash {
+    background-image: radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      rgb(var(--brand) / 0.16),
+      transparent 70%
+    );
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
   .animate-in {
     animation: fade-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
@@ -210,5 +230,26 @@ textarea {
   }
   50% {
     opacity: 0.45;
+  }
+}
+
+@layer components {
+  /* Chat bubbles: the first message of a run keeps a squared corner on the
+     sender's side so consecutive messages read as one group. */
+  .bubble {
+    @apply max-w-[82%] rounded-2xl px-3.5 py-2 text-[0.95rem] leading-snug shadow-card;
+  }
+  .bubble-mine {
+    @apply text-white;
+    background-image: linear-gradient(135deg, rgb(var(--brand-light)), rgb(var(--brand)));
+  }
+  .bubble-theirs {
+    @apply border border-border bg-bg-card text-text-primary;
+  }
+  .bubble-mine-tail {
+    border-bottom-right-radius: 0.35rem;
+  }
+  .bubble-theirs-tail {
+    border-bottom-left-radius: 0.35rem;
   }
 }

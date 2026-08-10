@@ -1,17 +1,68 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { format } from "date-fns";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { format, isSameDay, isToday, isYesterday } from "date-fns";
+import { ru } from "date-fns/locale";
 import { useSession } from "next-auth/react";
 import { useStageSocket } from "@/lib/use-stage-socket";
 import { MicButton } from "@/components/mic-button";
 import { Clock3, MessageCircle, SendHorizontal } from "lucide-react";
-import { EmptyState, SkeletonChat } from "@/components/ui";
+import { Avatar, EmptyState, SkeletonChat } from "@/components/ui";
 import { enqueueOutboxItem, getAllOutboxItems, type OutboxMessageItem } from "@/lib/outbox";
 import { useOutboxFlush } from "@/lib/use-outbox-flush";
 import type { MessageSummary } from "@/types/models";
 
 type ChatMessage = MessageSummary & { pending?: boolean };
+
+/** A message plus the layout hints derived from its neighbours. */
+interface RenderedMessage {
+  message: ChatMessage;
+  /** First message of a run by the same sender — shows the name. */
+  startsGroup: boolean;
+  /** Last of a run — gets the tail corner and the timestamp. */
+  endsGroup: boolean;
+  /** Date separator to render above this message, if any. */
+  daySeparator: string | null;
+}
+
+function dayLabel(date: Date) {
+  if (isToday(date)) return "Сегодня";
+  if (isYesterday(date)) return "Вчера";
+  return format(date, "d MMMM", { locale: ru });
+}
+
+/**
+ * Groups consecutive messages from the same author (within 5 minutes) so the
+ * name and timestamp aren't repeated on every line, and inserts day separators.
+ */
+function groupMessages(messages: ChatMessage[]): RenderedMessage[] {
+  const GROUP_WINDOW_MS = 5 * 60 * 1000;
+
+  return messages.map((message, i) => {
+    const prev = messages[i - 1];
+    const next = messages[i + 1];
+    const at = new Date(message.createdAt);
+
+    const newDay = !prev || !isSameDay(new Date(prev.createdAt), at);
+    const sameAsPrev =
+      !!prev &&
+      prev.sender.id === message.sender.id &&
+      !newDay &&
+      at.getTime() - new Date(prev.createdAt).getTime() < GROUP_WINDOW_MS;
+    const sameAsNext =
+      !!next &&
+      next.sender.id === message.sender.id &&
+      isSameDay(new Date(next.createdAt), at) &&
+      new Date(next.createdAt).getTime() - at.getTime() < GROUP_WINDOW_MS;
+
+    return {
+      message,
+      startsGroup: !sameAsPrev,
+      endsGroup: !sameAsNext,
+      daySeparator: newDay ? dayLabel(at) : null
+    };
+  });
+}
 
 export function ChatPanel({ stageId, currentUserId }: { stageId: string; currentUserId: string }) {
   const { data: session } = useSession();
@@ -26,7 +77,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
     let cancelled = false;
     (async () => {
       const [res, outboxItems] = await Promise.all([
-        fetch(`/api/stages/${stageId}/messages`),
+        fetch(`/api/stages/${stageId}/messages`).catch(() => null),
         getAllOutboxItems()
       ]);
       if (cancelled) return;
@@ -43,10 +94,11 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
           pending: true
         }));
 
-      if (res.ok) {
+      if (res?.ok) {
         const data = await res.json();
         setMessages([...data.messages, ...pending]);
       } else {
+        // Offline or server error: still show whatever is queued locally.
         setMessages(pending);
       }
       setLoading(false);
@@ -81,6 +133,8 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  const rendered = useMemo(() => groupMessages(messages), [messages]);
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
@@ -131,7 +185,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
 
   return (
     <div className="flex h-[calc(100dvh-13.5rem)] flex-col lg:h-[calc(100dvh-12rem)]">
-      <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto px-3 py-3">
         {loading && <SkeletonChat />}
         {!loading && messages.length === 0 && (
           <EmptyState
@@ -140,31 +194,58 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
             description="Начните обсуждение этапа — вся переписка останется привязана именно к нему."
           />
         )}
-        {messages.map((m) => {
+
+        {rendered.map(({ message: m, startsGroup, endsGroup, daySeparator }) => {
           const mine = m.sender.id === currentUserId;
           return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+            <div key={m.id}>
+              {daySeparator && (
+                <div className="my-4 flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-medium text-text-muted">{daySeparator}</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+              )}
+
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                  m.pending ? "bg-bg-elevated text-text-secondary" : mine ? "bg-brand text-white" : "bg-bg-card text-text-primary"
+                className={`flex items-end gap-2 ${endsGroup ? "mb-2.5" : "mb-0.5"} ${
+                  mine ? "flex-row-reverse" : ""
                 }`}
               >
-                {!mine && <p className="mb-0.5 text-xs font-semibold text-brand-light">{m.sender.name}</p>}
-                <p className="whitespace-pre-wrap break-words">{m.content}</p>
-                <p
-                  className={`mt-1 text-right text-xs ${
-                    m.pending ? "text-text-muted" : mine ? "text-white/70" : "text-text-muted"
+                {/* Avatar only on the last message of someone else's run, so a
+                    group reads as one block instead of a column of faces. */}
+                <div className="w-8 flex-shrink-0">
+                  {!mine && endsGroup && (
+                    <Avatar name={m.sender.name} id={m.sender.id} size={32} />
+                  )}
+                </div>
+
+                <div
+                  className={`bubble ${m.pending ? "border border-border bg-bg-elevated text-text-secondary" : mine ? "bubble-mine" : "bubble-theirs"} ${
+                    endsGroup ? (mine ? "bubble-mine-tail" : "bubble-theirs-tail") : ""
                   }`}
                 >
-                  {m.pending ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Clock3 size={11} />
-                      ждёт сети
-                    </span>
-                  ) : (
-                    format(new Date(m.createdAt), "HH:mm")
+                  {!mine && startsGroup && (
+                    <p className="mb-0.5 text-xs font-semibold text-brand-light">{m.sender.name}</p>
                   )}
-                </p>
+                  <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                  {endsGroup && (
+                    <p
+                      className={`mt-1 text-right text-[11px] ${
+                        m.pending ? "text-text-muted" : mine ? "text-white/75" : "text-text-muted"
+                      }`}
+                    >
+                      {m.pending ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 size={11} />
+                          ждёт сети
+                        </span>
+                      ) : (
+                        format(new Date(m.createdAt), "HH:mm")
+                      )}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -172,9 +253,12 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex gap-2 border-t border-border px-3 py-3">
+      <form
+        onSubmit={handleSend}
+        className="flex items-end gap-2 border-t border-border bg-bg-soft/60 px-3 py-3 backdrop-blur"
+      >
         <input
-          className="input flex-1"
+          className="input flex-1 rounded-2xl"
           placeholder="Сообщение…"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -182,11 +266,11 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
         <MicButton onResult={(spoken) => setText((prev) => (prev ? `${prev} ${spoken}` : spoken))} />
         <button
           type="submit"
-          className="btn-primary aspect-square w-14 !px-0"
+          className="btn-primary aspect-square w-12 !rounded-2xl !px-0"
           disabled={sending || !text.trim()}
           aria-label="Отправить"
         >
-          <SendHorizontal size={20} />
+          <SendHorizontal size={19} />
         </button>
       </form>
     </div>

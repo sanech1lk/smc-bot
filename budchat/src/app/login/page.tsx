@@ -38,11 +38,11 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center px-6 py-10">
+    <div className="hero-wash flex min-h-screen flex-col justify-center px-6 py-10">
       <div className="animate-in mx-auto w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size={60} />
-          <h1 className="mt-4 text-2xl font-bold">BudChat</h1>
+          <Logo size={64} glow />
+          <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">BudChat</h1>
           <p className="mt-1 text-text-secondary">Мессенджер для строительных бригад</p>
         </div>
 

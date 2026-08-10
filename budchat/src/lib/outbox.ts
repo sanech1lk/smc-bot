@@ -55,8 +55,18 @@ export async function enqueueOutboxItem(item: OutboxItem): Promise<void> {
   await withStore("readwrite", (store) => store.put(item));
 }
 
+/**
+ * IndexedDB can be unavailable entirely (Safari private browsing, storage
+ * blocked by policy). Callers use this to decorate the UI, so a failure must
+ * degrade to "no queued items" rather than reject and break the screen.
+ */
 export async function getAllOutboxItems(): Promise<OutboxItem[]> {
-  return withStore("readonly", (store) => store.getAll());
+  try {
+    return await withStore<OutboxItem[]>("readonly", (store) => store.getAll());
+  } catch (err) {
+    console.warn("Outbox unavailable", err);
+    return [];
+  }
 }
 
 export async function removeOutboxItem(id: string): Promise<void> {

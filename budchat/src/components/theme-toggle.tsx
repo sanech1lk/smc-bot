@@ -22,7 +22,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setMode(NEXT_MODE[mode])}
-      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-bg-card text-text-secondary transition-colors hover:text-text-primary active:bg-bg-elevated"
+      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-bg-card text-text-secondary transition-all hover:text-text-primary active:scale-95 active:bg-bg-elevated"
       aria-label={LABEL[mode]}
       title={LABEL[mode]}
     >

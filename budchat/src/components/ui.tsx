@@ -85,14 +85,70 @@ export function InfoNote({ children }: { children: ReactNode }) {
   );
 }
 
-export function Logo({ size = 44 }: { size?: number }) {
+export function Logo({ size = 44, glow = false }: { size?: number; glow?: boolean }) {
   return (
     <span
-      className="flex flex-shrink-0 items-center justify-center rounded-xl bg-brand font-bold text-white shadow-card"
-      style={{ width: size, height: size, fontSize: size * 0.45 }}
+      className={`flex flex-shrink-0 items-center justify-center rounded-2xl font-bold text-white ${
+        glow ? "brand-glow" : "shadow-card"
+      }`}
+      style={{
+        width: size,
+        height: size,
+        fontSize: size * 0.44,
+        backgroundImage: "linear-gradient(135deg, rgb(var(--brand-light)), rgb(var(--brand)))"
+      }}
       aria-hidden
     >
       Б
+    </span>
+  );
+}
+
+// Deterministic palette so a person keeps the same avatar colour everywhere.
+const AVATAR_TONES = [
+  "bg-[rgb(var(--accent))]",
+  "bg-[rgb(var(--status-green))]",
+  "bg-[rgb(var(--brand))]",
+  "bg-[rgb(var(--status-yellow))]",
+  "bg-violet-500",
+  "bg-teal-500",
+  "bg-rose-500",
+  "bg-sky-500"
+];
+
+function toneFor(seed: string) {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[hash % AVATAR_TONES.length];
+}
+
+export function Avatar({
+  name,
+  id,
+  size = 40
+}: {
+  name: string;
+  /** Stable seed for the colour — falls back to the name. */
+  id?: string;
+  size?: number;
+}) {
+  // Names often carry a parenthetical role ("Дмитрий (мастер)"). Dropping it
+  // first keeps the avatar as "Д" rather than the misleading "ДМ" — and the
+  // letters-only match avoids picking up the bracket itself.
+  const initials = (name.replace(/\([^)]*\)/g, " ").match(/\p{L}+/gu) ?? [])
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join("");
+
+  return (
+    <span
+      className={`flex flex-shrink-0 items-center justify-center rounded-full font-semibold text-white ${toneFor(
+        id ?? name
+      )}`}
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      aria-hidden
+    >
+      {initials || "?"}
     </span>
   );
 }
