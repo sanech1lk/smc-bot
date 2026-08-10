@@ -2,24 +2,65 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { CalendarDays, Layers, Map, Users } from "lucide-react";
+import {
+  CalendarDays,
+  ClipboardCheck,
+  Clock,
+  FileText,
+  FolderOpen,
+  Layers,
+  Map,
+  Package,
+  ScrollText,
+  UserCircle,
+  Users
+} from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { StageList } from "@/components/stage-list";
 import { MembersPanel } from "@/components/members-panel";
 import { VisitsCalendar } from "@/components/visits-calendar";
 import { PlanPanel } from "@/components/plan-panel";
 import { CurrencyPicker } from "@/components/currency-picker";
+import { ShiftsPanel } from "@/components/project/shifts-panel";
+import { DailyLogsPanel } from "@/components/project/daily-logs-panel";
+import { ChangeOrdersPanel } from "@/components/project/change-orders-panel";
+import { PunchPanel } from "@/components/project/punch-panel";
+import { MaterialsPanel } from "@/components/project/materials-panel";
+import { DocumentsPanel } from "@/components/project/documents-panel";
+import { ClientPortal } from "@/components/project/client-portal";
 import { ErrorNote, SkeletonList } from "@/components/ui";
 import type { ProjectMemberSummary, ProjectRole, StageSummary, VisitSummary } from "@/types/models";
 
-type Tab = "stages" | "plan" | "members" | "calendar";
+type Tab =
+  | "portal"
+  | "stages"
+  | "logs"
+  | "changes"
+  | "punch"
+  | "shifts"
+  | "materials"
+  | "documents"
+  | "plan"
+  | "calendar"
+  | "members";
 
 const TABS: { id: Tab; label: string; icon: typeof Layers }[] = [
+  { id: "portal", label: "Обзор", icon: UserCircle },
   { id: "stages", label: "Этапы", icon: Layers },
+  { id: "logs", label: "Журнал", icon: FileText },
+  { id: "changes", label: "Допы", icon: ScrollText },
+  { id: "punch", label: "Дефекты", icon: ClipboardCheck },
+  { id: "shifts", label: "Смены", icon: Clock },
+  { id: "materials", label: "Материалы", icon: Package },
+  { id: "documents", label: "Документы", icon: FolderOpen },
   { id: "plan", label: "План", icon: Map },
-  { id: "members", label: "Участники", icon: Users },
-  { id: "calendar", label: "Календарь", icon: CalendarDays }
+  { id: "calendar", label: "Календарь", icon: CalendarDays },
+  { id: "members", label: "Участники", icon: Users }
 ];
+
+// The customer only needs the curated view plus the shared records; the
+// crew's timesheets and material costs stay internal.
+const CLIENT_TABS: Tab[] = ["portal", "stages", "logs", "changes", "punch", "documents", "plan", "calendar"];
 
 interface ProjectDetail {
   id: string;
@@ -51,6 +92,8 @@ export default function ProjectDetailPage() {
     setProject(data.project);
     setMyRole(data.myRole);
     setVisits(data.project.visits ?? []);
+    // The customer lands on their own overview rather than the crew's stage list.
+    if (data.myRole === "CLIENT") setTab((current) => (current === "stages" ? "portal" : current));
   }, [projectId]);
 
   useEffect(() => {
@@ -59,10 +102,7 @@ export default function ProjectDetailPage() {
 
   const loadVisits = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}/visits`);
-    if (res.ok) {
-      const data = await res.json();
-      setVisits(data.visits);
-    }
+    if (res.ok) setVisits((await res.json()).visits);
   }, [projectId]);
 
   if (error) {
@@ -87,12 +127,14 @@ export default function ProjectDetailPage() {
     );
   }
 
+  const visibleTabs = myRole === "CLIENT" ? TABS.filter((t) => CLIENT_TABS.includes(t.id)) : TABS;
+
   return (
     <div className="pb-10">
       <TopBar title={project.name} subtitle={project.address} backHref="/projects" />
 
-      <div className="sticky top-[calc(4.75rem+env(safe-area-inset-top))] z-20 flex gap-2 overflow-x-auto border-b border-border bg-bg/85 px-4 py-2 backdrop-blur-md">
-        {TABS.map(({ id, label, icon: Icon }) => (
+      <div className="sticky top-[calc(4.75rem+env(safe-area-inset-top))] z-20 flex gap-2 overflow-x-auto border-b border-border bg-bg/85 px-4 py-2 backdrop-blur-xl">
+        {visibleTabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -109,27 +151,30 @@ export default function ProjectDetailPage() {
       </div>
 
       <div key={tab} className="animate-in px-4 py-4">
+        {tab === "portal" && <ClientPortal projectId={project.id} />}
         {tab === "stages" && (
           <StageList projectId={project.id} stages={project.stages} myRole={myRole} onChange={loadProject} />
         )}
-        {tab === "plan" && <PlanPanel projectId={project.id} stages={project.stages} myRole={myRole} />}
-        {tab === "members" && (
-          <div className="space-y-4">
-            {myRole === "ADMIN" && (
-              <CurrencyPicker
-                projectId={project.id}
-                value={project.currency}
-                onChanged={loadProject}
-              />
-            )}
-            <MembersPanel
-              projectId={project.id}
-              members={project.members}
-              myRole={myRole}
-              onChange={loadProject}
-            />
-          </div>
+        {tab === "logs" && <DailyLogsPanel projectId={project.id} myRole={myRole} />}
+        {tab === "changes" && (
+          <ChangeOrdersPanel projectId={project.id} stages={project.stages} myRole={myRole} />
         )}
+        {tab === "punch" && (
+          <PunchPanel
+            projectId={project.id}
+            stages={project.stages}
+            members={project.members}
+            myRole={myRole}
+          />
+        )}
+        {tab === "shifts" && (
+          <ShiftsPanel projectId={project.id} stages={project.stages} myRole={myRole} />
+        )}
+        {tab === "materials" && (
+          <MaterialsPanel projectId={project.id} stages={project.stages} myRole={myRole} />
+        )}
+        {tab === "documents" && <DocumentsPanel projectId={project.id} myRole={myRole} />}
+        {tab === "plan" && <PlanPanel projectId={project.id} stages={project.stages} myRole={myRole} />}
         {tab === "calendar" && (
           <VisitsCalendar
             projectId={project.id}
@@ -138,6 +183,19 @@ export default function ProjectDetailPage() {
             canEdit={myRole !== "CLIENT"}
             onChange={loadVisits}
           />
+        )}
+        {tab === "members" && (
+          <div className="space-y-4">
+            {myRole === "ADMIN" && (
+              <CurrencyPicker projectId={project.id} value={project.currency} onChanged={loadProject} />
+            )}
+            <MembersPanel
+              projectId={project.id}
+              members={project.members}
+              myRole={myRole}
+              onChange={loadProject}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -8,7 +8,9 @@ import { emitToStage } from "@/lib/socket-server";
 
 const updateSchema = z.object({
   tag: z.nativeEnum(PhotoTag).optional(),
-  description: z.string().max(500).optional()
+  description: z.string().max(500).optional(),
+  // Serialised freehand strokes drawn over the photo. Null clears the markup.
+  annotations: z.string().max(200_000).nullable().optional()
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

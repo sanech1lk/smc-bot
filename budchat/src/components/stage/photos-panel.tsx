@@ -6,7 +6,8 @@ import { useStageSocket } from "@/lib/use-stage-socket";
 import { stampPhoto } from "@/lib/geo-stamp";
 import { enqueueOutboxItem, getAllOutboxItems, type OutboxPhotoItem } from "@/lib/outbox";
 import { useOutboxFlush } from "@/lib/use-outbox-flush";
-import { Camera, Clock3, ImageIcon, MapPin } from "lucide-react";
+import { Camera, Clock3, ImageIcon, MapPin, PenLine } from "lucide-react";
+import { AnnotationOverlay, PhotoAnnotator } from "@/components/stage/photo-annotator";
 import { EmptyState, SkeletonGrid } from "@/components/ui";
 import type { PhotoSummary, PhotoTag } from "@/types/models";
 
@@ -38,6 +39,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
   const [uploading, setUploading] = useState(false);
   const [uploadTag, setUploadTag] = useState<PhotoTag>("BEFORE");
   const [preview, setPreview] = useState<PhotoSummary | null>(null);
+  const [annotating, setAnnotating] = useState<PhotoSummary | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const socket = useStageSocket(stageId);
 
@@ -157,6 +159,20 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
     }
   }
 
+  async function saveAnnotations(photo: PhotoSummary, annotations: string | null) {
+    const res = await fetch(`/api/photos/${photo.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ annotations })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setPhotos((prev) => prev.map((p) => (p.id === photo.id ? data.photo : p)));
+      setPreview((prev) => (prev && prev.id === photo.id ? data.photo : prev));
+    }
+    setAnnotating(null);
+  }
+
   async function queueOffline(stamped: { blob: Blob; lat: number | null; lng: number | null; accuracy: number | null }) {
     const id = `pending-${crypto.randomUUID()}`;
     const item: OutboxPhotoItem = {
@@ -240,12 +256,22 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
             className="relative aspect-square overflow-hidden rounded-xl bg-bg-card"
           >
             <Image src={photo.url} alt={photo.description ?? "Фото"} fill className="object-cover" sizes="200px" />
+            <AnnotationOverlay annotations={photo.annotations} />
             <span className={`absolute left-1.5 top-1.5 chip py-0.5 text-xs ${TAG_COLOR[photo.tag]}`}>
               {TAG_LABEL[photo.tag]}
             </span>
           </button>
         ))}
       </div>
+
+      {annotating && (
+        <PhotoAnnotator
+          photoUrl={annotating.url}
+          initial={annotating.annotations}
+          onCancel={() => setAnnotating(null)}
+          onSave={(value) => saveAnnotations(annotating, value)}
+        />
+      )}
 
       {preview && (
         <div
@@ -254,11 +280,22 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
         >
           <div className="relative mx-auto my-auto h-[70vh] w-full max-w-lg">
             <Image src={preview.url} alt={preview.description ?? "Фото"} fill className="object-contain" />
+            <AnnotationOverlay annotations={preview.annotations} />
           </div>
           <div className="mx-auto w-full max-w-lg text-center text-white">
             <span className={`chip ${TAG_COLOR[preview.tag]}`}>{TAG_LABEL[preview.tag]}</span>
             {preview.description && <p className="mt-2">{preview.description}</p>}
             <p className="mt-1 text-sm text-white/60">Загрузил: {preview.uploadedBy.name}</p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setAnnotating(preview);
+              }}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
+            >
+              <PenLine size={16} />
+              {preview.annotations ? "Изменить разметку" : "Разметить фото"}
+            </button>
             {preview.lat != null && preview.lng != null && (
               <a
                 href={`https://maps.google.com/?q=${preview.lat},${preview.lng}`}

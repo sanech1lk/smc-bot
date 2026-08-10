@@ -64,6 +64,7 @@ export interface PhotoSummary {
   lat?: number | null;
   lng?: number | null;
   accuracy?: number | null;
+  annotations?: string | null;
   createdAt: string;
   uploadedBy: UserSummary;
 }
@@ -141,4 +142,79 @@ export interface PlanPinSummary {
   createdBy: UserSummary;
   stage?: { id: string; name: string } | null;
   photo?: { id: string; url: string } | null;
+}
+
+export type ChangeOrderStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type PunchStatus = "OPEN" | "IN_PROGRESS" | "FIXED" | "VERIFIED";
+export type DocumentCategory = "CONTRACT" | "DRAWING" | "CERTIFICATE" | "INVOICE" | "OTHER";
+
+export interface ShiftSummary {
+  id: string;
+  userId: string;
+  startedAt: string;
+  endedAt: string | null;
+  note?: string | null;
+  user?: UserSummary;
+  stage?: { id: string; name: string } | null;
+}
+
+export interface DailyLogSummary {
+  id: string;
+  date: string;
+  weather?: string | null;
+  temperature?: number | null;
+  crewCount?: number | null;
+  workDone: string;
+  issues?: string | null;
+  author: UserSummary;
+}
+
+export interface ChangeOrderSummary {
+  id: string;
+  number: number;
+  title: string;
+  description?: string | null;
+  amount: number;
+  status: ChangeOrderStatus;
+  signatureData?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+  createdBy: UserSummary;
+  decidedBy?: UserSummary | null;
+  stage?: { id: string; name: string } | null;
+}
+
+export interface PunchItemSummary {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: PunchStatus;
+  dueDate?: string | null;
+  createdAt: string;
+  assignee?: UserSummary | null;
+  createdBy: UserSummary;
+  stage?: { id: string; name: string } | null;
+  photo?: { id: string; url: string } | null;
+}
+
+export interface MaterialSummary {
+  id: string;
+  name: string;
+  unit: string;
+  quantityPlanned: number;
+  quantityUsed: number;
+  unitPrice: number;
+  supplier?: string | null;
+  stage?: { id: string; name: string } | null;
+}
+
+export interface DocumentSummary {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  sizeBytes: number;
+  category: DocumentCategory;
+  createdAt: string;
+  uploadedBy: UserSummary;
 }
