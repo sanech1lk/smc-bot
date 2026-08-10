@@ -11,7 +11,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <ArrowLeft size={16} />
         Назад
       </Link>
-      <article className="prose-budchat space-y-4 text-text-secondary [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-text-primary [&_h2]:mt-8 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-text-primary [&_li]:ml-5 [&_li]:list-disc [&_strong]:text-text-primary">
+      <article className="prose-budchat space-y-4 text-text-secondary [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-text-primary [&_h2]:mt-8 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-text-primary [&_h3]:mt-6 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-text-primary [&_li]:ml-5 [&_li]:list-disc [&_strong]:text-text-primary">
         {children}
       </article>
     </div>

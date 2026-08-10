@@ -9,6 +9,13 @@ RUN npm install
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# The browser half of error tracking has to be baked in at build time — the
+# client bundle can't read environment variables later. Empty means the
+# in-browser reporter stays switched off; the server half is read at startup.
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+
 RUN npx prisma generate
 RUN npm run build
 

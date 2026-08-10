@@ -20,6 +20,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # One SENTRY_DSN in .env drives both halves: this bakes it into the
+        # browser bundle, the environment block below hands it to the server.
+        NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN:-}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -35,6 +39,9 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:support@example.com}
+      # Error tracking. Empty = disabled, the app behaves identically.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     ports:
       - "3000:3000"
     volumes:

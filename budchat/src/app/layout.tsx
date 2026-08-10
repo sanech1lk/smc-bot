@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { SentryUser } from "@/components/sentry-user";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { themeInitScript } from "@/components/theme";
 
@@ -48,7 +49,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-screen bg-bg text-text-primary antialiased tracking-tightish">
-        <Providers>{children}</Providers>
+        <Providers>
+          <SentryUser />
+          {children}
+        </Providers>
         <ServiceWorkerRegister />
       </body>
     </html>
