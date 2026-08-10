@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
+import { AlertCircle, Check, Map as MapIcon, Plus, Trash2, Upload } from "lucide-react";
+import { EmptyState, SkeletonList } from "@/components/ui";
 import type { PlanPinSummary, PlanSummary, ProjectRole, StageSummary } from "@/types/models";
 
 export function PlanPanel({
@@ -135,7 +137,11 @@ export function PlanPanel({
   const activePlan = plans.find((p) => p.id === activePlanId) ?? null;
 
   if (loading) {
-    return <p className="px-4 py-4 text-center text-text-secondary">Загрузка…</p>;
+    return (
+      <div className="px-4 py-4 pb-6">
+        <SkeletonList rows={2} height="h-48" />
+      </div>
+    );
   }
 
   return (
@@ -160,16 +166,24 @@ export function PlanPanel({
         <div className="mb-3">
           <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" id="plan-input" />
           <label htmlFor="plan-input" className="btn-secondary block w-full cursor-pointer text-center">
-            {uploading ? "Загружаем…" : plans.length === 0 ? "📐 Загрузить план объекта" : "+ Добавить ещё план"}
+            {uploading ? (
+              "Загружаем…"
+            ) : (
+              <>
+                {plans.length === 0 ? <Upload size={18} /> : <Plus size={18} />}
+                {plans.length === 0 ? "Загрузить план объекта" : "Добавить ещё план"}
+              </>
+            )}
           </label>
         </div>
       )}
 
       {!activePlan && plans.length === 0 && (
-        <p className="mt-6 text-center text-text-secondary">
-          Загрузите план или чертёж объекта — можно будет ставить метки прямо на плане: где проблема, где сделано
-          фото, к какому этапу относится.
-        </p>
+        <EmptyState
+          icon={MapIcon}
+          title="План объекта не загружен"
+          description="Загрузите чертёж — и ставьте метки прямо на нём: где проблема, к какому этапу относится."
+        />
       )}
 
       {activePlan && (
@@ -205,7 +219,7 @@ export function PlanPanel({
                 style={{ left: `${pin.x * 100}%`, top: `${pin.y * 100}%` }}
                 aria-label={pin.title}
               >
-                {pin.status === "OPEN" ? "!" : "✓"}
+                {pin.status === "OPEN" ? <AlertCircle size={15} /> : <Check size={15} strokeWidth={3} />}
               </button>
             ))}
           </div>
@@ -251,10 +265,14 @@ export function PlanPanel({
             {myRole !== "CLIENT" && (
               <div className="mt-4 flex gap-3">
                 <button className="btn-secondary flex-1" onClick={() => toggleResolved(selectedPin)}>
-                  {selectedPin.status === "OPEN" ? "✓ Отметить решённой" : "↺ Снова открыть"}
+                  {selectedPin.status === "OPEN" ? "Отметить решённой" : "Снова открыть"}
                 </button>
-                <button className="btn-danger" onClick={() => deletePin(selectedPin)}>
-                  Удалить
+                <button
+                  className="btn-danger px-4"
+                  onClick={() => deletePin(selectedPin)}
+                  aria-label="Удалить метку"
+                >
+                  <Trash2 size={18} />
                 </button>
               </div>
             )}

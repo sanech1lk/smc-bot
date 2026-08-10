@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { ProjectRole } from "@prisma/client";
 import { DEFAULT_STAGE_NAMES } from "@/lib/stages";
+import { isSupportedCurrency } from "@/lib/currency";
 
 const createProjectSchema = z.object({
   name: z.string().min(2, "Введите название объекта"),
   address: z.string().min(3, "Введите адрес"),
+  currency: z.string().refine(isSupportedCurrency, "Валюта не поддерживается").optional(),
   stageNames: z.array(z.string().min(1).max(60)).min(1).max(30).optional()
 });
 
@@ -48,6 +50,7 @@ export async function POST(req: Request) {
     data: {
       name: parsed.data.name,
       address: parsed.data.address,
+      currency: parsed.data.currency ?? "RUB",
       members: {
         create: { userId: user.id, role: ProjectRole.ADMIN }
       },

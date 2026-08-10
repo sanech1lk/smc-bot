@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { DEFAULT_STAGE_NAMES } from "@/lib/stages";
+import { CURRENCIES } from "@/lib/currency";
+import { ErrorNote } from "@/components/ui";
 
 export function NewProjectDialog({
   open,
@@ -14,6 +17,7 @@ export function NewProjectDialog({
 }) {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
+  const [currency, setCurrency] = useState("RUB");
   const [stageNames, setStageNames] = useState<string[]>([...DEFAULT_STAGE_NAMES]);
   const [newStage, setNewStage] = useState("");
   const [stagesOpen, setStagesOpen] = useState(false);
@@ -21,10 +25,6 @@ export function NewProjectDialog({
   const [loading, setLoading] = useState(false);
 
   if (!open) return null;
-
-  function removeStage(index: number) {
-    setStageNames((prev) => prev.filter((_, i) => i !== index));
-  }
 
   function addStage() {
     const value = newStage.trim();
@@ -46,7 +46,7 @@ export function NewProjectDialog({
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, address, stageNames })
+      body: JSON.stringify({ name, address, currency, stageNames })
     });
     const data = await res.json();
     setLoading(false);
@@ -64,14 +64,31 @@ export function NewProjectDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/60 sm:items-center">
-      <div className="w-full max-w-md rounded-t-2xl border border-border-soft bg-bg-card p-5 sm:my-8 sm:rounded-2xl">
-        <h2 className="mb-4 text-xl font-bold">Новый объект</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-black/50 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+    >
+      <div
+        className="animate-sheet w-full max-w-md rounded-t-2xl border border-border bg-bg-card p-5 shadow-overlay sm:my-8 sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold">Новый объект</h2>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted hover:text-text-primary"
+            aria-label="Закрыть"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             className="input"
             placeholder="Название объекта"
             required
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -83,41 +100,56 @@ export function NewProjectDialog({
             onChange={(e) => setAddress(e.target.value)}
           />
 
+          <div>
+            <label className="label mb-1.5 block">Валюта сметы</label>
+            <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.symbol} — {c.label} ({c.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             type="button"
             onClick={() => setStagesOpen((v) => !v)}
-            className="flex w-full items-center justify-between rounded-xl bg-bg-elevated px-4 py-3 text-left"
+            className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-4 py-3 text-left transition-colors"
           >
             <span>
               Этапы: <span className="font-semibold">{stageNames.length}</span>
             </span>
-            <span className="text-text-secondary">{stagesOpen ? "▲" : "▼"}</span>
+            {stagesOpen ? (
+              <ChevronUp size={18} className="text-text-muted" />
+            ) : (
+              <ChevronDown size={18} className="text-text-muted" />
+            )}
           </button>
 
           {stagesOpen && (
-            <div className="space-y-2 rounded-xl border border-border-soft p-3">
+            <div className="animate-in space-y-2 rounded-xl border border-border bg-bg-soft p-3">
               <p className="text-sm text-text-secondary">
                 Список по умолчанию подходит для ремонта квартиры — уберите лишние или добавьте свои.
               </p>
-              {stageNames.map((name, index) => (
+              {stageNames.map((stageName, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated text-xs text-text-secondary">
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated text-xs font-semibold text-text-secondary">
                     {index + 1}
                   </span>
-                  <span className="flex-1 truncate">{name}</span>
+                  <span className="flex-1 truncate text-sm">{stageName}</span>
                   <button
                     type="button"
-                    onClick={() => removeStage(index)}
+                    onClick={() => setStageNames((prev) => prev.filter((_, i) => i !== index))}
                     className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-status-red active:bg-status-red/10"
-                    aria-label="Убрать этап"
+                    aria-label={`Убрать этап ${stageName}`}
                   >
-                    ✕
+                    <X size={16} />
                   </button>
                 </div>
               ))}
               <div className="flex gap-2 pt-1">
                 <input
-                  className="input py-2"
+                  className="input py-2 text-sm"
                   placeholder="Новый этап"
                   value={newStage}
                   onChange={(e) => setNewStage(e.target.value)}
@@ -128,15 +160,16 @@ export function NewProjectDialog({
                     }
                   }}
                 />
-                <button type="button" className="btn-secondary py-2" onClick={addStage}>
-                  +
+                <button type="button" className="btn-secondary px-3 py-2" onClick={addStage}>
+                  <Plus size={18} />
                 </button>
               </div>
             </div>
           )}
 
-          {error && <p className="rounded-xl bg-status-red/10 px-4 py-2 text-status-red">{error}</p>}
-          <div className="flex gap-3 pt-2">
+          {error && <ErrorNote>{error}</ErrorNote>}
+
+          <div className="flex gap-3 pt-1">
             <button type="button" className="btn-secondary flex-1" onClick={onClose}>
               Отмена
             </button>

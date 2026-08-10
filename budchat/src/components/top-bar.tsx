@@ -2,45 +2,61 @@
 
 import { signOut } from "next-auth/react";
 import Link from "next/link";
+import { ArrowLeft, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/ui";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopBar({
   title,
+  subtitle,
   backHref,
-  right
+  right,
+  showAccountActions = false
 }: {
   title: string;
+  subtitle?: string;
   backHref?: string;
   right?: ReactNode;
+  /** Shows the theme switch and sign-out button (top-level screens only). */
+  showAccountActions?: boolean;
 }) {
   return (
-    <header className="top-safe sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-bg/95 px-4 py-3 backdrop-blur">
-      {backHref ? (
-        <Link
-          href={backHref}
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-bg-card text-xl active:bg-bg-elevated"
-          aria-label="Назад"
-        >
-          ←
-        </Link>
-      ) : (
-        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">
-          Б
-        </div>
-      )}
-      <h1 className="min-w-0 flex-1 truncate text-lg font-bold">{title}</h1>
-      <div className="flex flex-shrink-0 items-center gap-2">
-        {right}
-        {!backHref && (
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg-card text-lg active:bg-bg-elevated"
-            aria-label="Выйти"
-            title="Выйти"
+    <header className="top-safe sticky top-0 z-30 border-b border-border bg-bg/85 backdrop-blur-md">
+      <div className="flex items-center gap-3 px-4 py-3">
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-bg-card text-text-secondary transition-colors hover:text-text-primary active:bg-bg-elevated"
+            aria-label="Назад"
           >
-            ⏻
-          </button>
+            <ArrowLeft size={20} strokeWidth={2.25} />
+          </Link>
+        ) : (
+          <Logo />
         )}
+
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-bold leading-tight">{title}</h1>
+          {subtitle && <p className="truncate text-sm text-text-secondary">{subtitle}</p>}
+        </div>
+
+        <div className="flex flex-shrink-0 items-center gap-2">
+          {right}
+          {showAccountActions && (
+            <>
+              <ThemeToggle />
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg-card text-text-secondary transition-colors hover:text-status-red active:bg-bg-elevated"
+                aria-label="Выйти"
+                title="Выйти"
+              >
+                <LogOut size={20} strokeWidth={2} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

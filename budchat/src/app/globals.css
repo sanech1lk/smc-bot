@@ -2,16 +2,79 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Colours live as CSS variables so the light/dark switch is a single
+ * attribute flip on <html> rather than a `dark:` prefix on every element.
+ */
+:root {
+  --bg: 248 249 251;
+  --bg-soft: 255 255 255;
+  --bg-card: 255 255 255;
+  --bg-elevated: 241 243 247;
+  --border: 226 230 237;
+  --border-soft: 235 238 244;
+
+  --text-primary: 17 21 28;
+  --text-secondary: 91 100 117;
+  --text-muted: 138 147 164;
+
+  --brand: 255 106 0;
+  --brand-dark: 224 88 0;
+  --brand-light: 255 138 51;
+
+  --accent: 37 99 235;
+  --accent-soft: 219 234 254;
+
+  --status-gray: 148 157 173;
+  --status-yellow: 234 160 8;
+  --status-green: 22 163 74;
+  --status-red: 220 38 38;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
+  --shadow-raised: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.06);
+  --shadow-overlay: 0 20px 40px rgba(16, 24, 40, 0.16);
+}
+
+[data-theme="dark"] {
+  --bg: 11 13 18;
+  --bg-soft: 22 25 34;
+  --bg-card: 24 28 38;
+  --bg-elevated: 34 39 52;
+  --border: 42 48 64;
+  --border-soft: 51 58 77;
+
+  --text-primary: 243 244 246;
+  --text-secondary: 154 161 177;
+  --text-muted: 116 125 143;
+
+  --brand: 255 122 26;
+  --brand-dark: 229 104 10;
+  --brand-light: 255 181 115;
+
+  --accent: 96 165 250;
+  --accent-soft: 30 58 95;
+
+  --status-gray: 107 114 128;
+  --status-yellow: 234 179 8;
+  --status-green: 34 197 94;
+  --status-red: 239 68 68;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-raised: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --shadow-overlay: 0 24px 48px rgba(0, 0, 0, 0.6);
+}
+
 html,
 body {
   height: 100%;
 }
 
 body {
-  background-color: #0f1115;
-  color: #f3f4f6;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--text-primary));
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 * {
@@ -31,7 +94,7 @@ a.btn,
 input,
 select,
 textarea {
-  min-height: 3.25rem;
+  min-height: 3rem;
 }
 
 ::-webkit-scrollbar {
@@ -39,47 +102,113 @@ textarea {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333a4d;
+  background: rgb(var(--border-soft));
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-lg font-semibold
-      transition active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none select-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold
+      transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none select-none;
   }
   .btn-primary {
-    @apply btn bg-brand text-white shadow-card active:bg-brand-dark;
+    @apply btn bg-brand text-white shadow-card hover:bg-brand-dark active:bg-brand-dark;
   }
   .btn-secondary {
-    @apply btn bg-bg-elevated text-text-primary border border-border-soft active:bg-bg-card;
+    @apply btn bg-bg-elevated text-text-primary border border-border hover:border-border-soft active:bg-bg-card;
   }
   .btn-ghost {
-    @apply btn bg-transparent text-text-secondary active:bg-bg-card;
+    @apply btn bg-transparent text-text-secondary hover:bg-bg-elevated active:bg-bg-card;
   }
   .btn-danger {
-    @apply btn bg-status-red/90 text-white active:bg-status-red;
+    @apply btn bg-status-red text-white active:opacity-90;
   }
   .input {
-    @apply w-full rounded-xl border border-border bg-bg-soft px-4 py-3 text-lg text-text-primary
-      placeholder:text-text-muted outline-none focus:border-brand;
+    @apply w-full rounded-xl border border-border bg-bg-soft px-4 py-3 text-base text-text-primary
+      placeholder:text-text-muted outline-none transition-colors
+      focus:border-brand focus:ring-2 focus:ring-brand/20;
   }
   .card {
     @apply rounded-2xl border border-border bg-bg-card p-4 shadow-card;
+  }
+  .card-raised {
+    @apply rounded-2xl border border-border bg-bg-card p-4 shadow-raised;
   }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium;
   }
   .status-dot {
-    @apply inline-block h-3 w-3 rounded-full flex-shrink-0;
+    @apply inline-block h-2.5 w-2.5 rounded-full flex-shrink-0;
+  }
+  .label {
+    @apply text-xs font-semibold uppercase tracking-wider text-text-muted;
   }
   .bottom-nav-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .top-safe {
     padding-top: env(safe-area-inset-top);
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: fade-slide-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-sheet {
+    animation: sheet-up 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .skeleton {
+    @apply rounded-lg bg-bg-elevated;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+  }
+  /* Soft halo behind the "in progress" dot so the active stage catches the eye */
+  .dot-glow {
+    box-shadow: 0 0 0 3px rgb(var(--status-yellow) / 0.18);
+  }
+}
+
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
   }
 }

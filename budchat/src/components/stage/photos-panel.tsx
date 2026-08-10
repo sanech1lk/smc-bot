@@ -6,6 +6,8 @@ import { useStageSocket } from "@/lib/use-stage-socket";
 import { stampPhoto } from "@/lib/geo-stamp";
 import { enqueueOutboxItem, getAllOutboxItems, type OutboxPhotoItem } from "@/lib/outbox";
 import { useOutboxFlush } from "@/lib/use-outbox-flush";
+import { Camera, Clock3, ImageIcon, MapPin } from "lucide-react";
+import { EmptyState, SkeletonGrid } from "@/components/ui";
 import type { PhotoSummary, PhotoTag } from "@/types/models";
 
 const TAG_LABEL: Record<PhotoTag, string> = {
@@ -173,7 +175,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
   }
 
   return (
-    <div className="px-4 py-4">
+    <div className="px-4 py-4 pb-24 lg:pb-6">
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
         <FilterChip label="Все" active={filter === "ALL"} onClick={() => setFilter("ALL")} />
         {(Object.keys(TAG_LABEL) as PhotoTag[]).map((tag) => (
@@ -206,13 +208,18 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
           id="photo-input"
         />
         <label htmlFor="photo-input" className="btn-primary w-full cursor-pointer">
-          {uploading ? "Загружаем…" : "📷 Сделать / выбрать фото"}
+          <Camera size={18} />
+          {uploading ? "Загружаем…" : "Сделать / выбрать фото"}
         </label>
       </div>
 
-      {loading && <p className="text-center text-text-secondary">Загрузка…</p>}
+      {loading && <SkeletonGrid />}
       {!loading && visiblePhotos.length === 0 && visiblePending.length === 0 && (
-        <p className="text-center text-text-secondary">Нет фото с этим тегом</p>
+        <EmptyState
+          icon={ImageIcon}
+          title="Нет фото с этим тегом"
+          description="Снимки автоматически получают дату и координаты — их можно использовать как доказательство работ."
+        />
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -220,8 +227,9 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
           <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-bg-card opacity-60">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photo.blobUrl} alt="Ожидает отправки" className="h-full w-full object-cover" />
-            <span className="absolute left-1.5 top-1.5 chip bg-black/60 py-0.5 text-xs text-white">
-              ⏳ ждёт сети
+            <span className="chip absolute left-1.5 top-1.5 gap-1 bg-black/65 py-0.5 text-xs text-white">
+              <Clock3 size={11} />
+              ждёт сети
             </span>
           </div>
         ))}
@@ -257,9 +265,10 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="mt-2 inline-block text-sm text-brand-light underline"
+                className="mt-2 inline-flex items-center gap-1.5 text-sm text-brand-light underline"
               >
-                📍 Открыть место на карте
+                <MapPin size={14} />
+                Открыть место на карте
               </a>
             )}
           </div>

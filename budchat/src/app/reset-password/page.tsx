@@ -1,0 +1,104 @@
+"use client";
+
+import { Suspense, useState, type FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { KeyRound } from "lucide-react";
+import { ErrorNote, Logo } from "@/components/ui";
+
+function ResetForm() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const token = params.get("token") ?? "";
+
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (password !== confirm) {
+      setError("Пароли не совпадают");
+      return;
+    }
+
+    setLoading(true);
+    const res = await fetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, password })
+    });
+    setLoading(false);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Не удалось изменить пароль");
+      return;
+    }
+
+    router.push("/login?reset=1");
+  }
+
+  if (!token) {
+    return (
+      <div className="animate-in mx-auto w-full max-w-sm text-center">
+        <Logo size={60} />
+        <h1 className="mt-4 text-2xl font-bold">Ссылка недействительна</h1>
+        <p className="mt-2 text-text-secondary">Запросите восстановление пароля заново.</p>
+        <Link href="/forgot-password" className="btn-primary mt-6 w-full">
+          Запросить ссылку
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="animate-in mx-auto w-full max-w-sm">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <Logo size={60} />
+        <h1 className="mt-4 text-2xl font-bold">Новый пароль</h1>
+        <p className="mt-1 text-text-secondary">Придумайте пароль для входа</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input
+          className="input"
+          type="password"
+          placeholder="Новый пароль (минимум 6 символов)"
+          autoComplete="new-password"
+          required
+          minLength={6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <input
+          className="input"
+          type="password"
+          placeholder="Повторите пароль"
+          autoComplete="new-password"
+          required
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+        />
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <button type="submit" className="btn-primary w-full" disabled={loading}>
+          <KeyRound size={18} />
+          {loading ? "Сохраняем…" : "Сохранить пароль"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <div className="flex min-h-screen flex-col justify-center px-6 py-10">
+      <Suspense fallback={null}>
+        <ResetForm />
+      </Suspense>
+    </div>
+  );
+}

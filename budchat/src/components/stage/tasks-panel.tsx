@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { format } from "date-fns";
 import { useStageSocket } from "@/lib/use-stage-socket";
 import { MicButton } from "@/components/mic-button";
+import { CalendarClock, CheckSquare, Plus, User, X } from "lucide-react";
+import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import type { ProjectMemberSummary, ProjectRole, TaskStatus, TaskSummary } from "@/types/models";
 
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -95,10 +97,11 @@ export function TasksPanel({
   const canCreate = myRole !== "CLIENT";
 
   return (
-    <div className={compact ? "" : "px-4 py-4"}>
+    <div className={compact ? "" : "px-4 py-4 pb-24 lg:pb-6"}>
       {canCreate && (
         <button className="btn-secondary mb-3 w-full" onClick={() => setFormOpen((v) => !v)}>
-          {formOpen ? "Отмена" : "+ Новая задача"}
+          {formOpen ? <X size={17} /> : <Plus size={17} />}
+          {formOpen ? "Отмена" : "Новая задача"}
         </button>
       )}
 
@@ -113,8 +116,14 @@ export function TasksPanel({
         />
       )}
 
-      {loading && <p className="text-center text-text-secondary">Загрузка…</p>}
-      {!loading && tasks.length === 0 && <p className="text-center text-text-secondary">Задач пока нет</p>}
+      {loading && <SkeletonList rows={3} height="h-28" />}
+      {!loading && tasks.length === 0 && (
+        <EmptyState
+          icon={CheckSquare}
+          title="Задач пока нет"
+          description={canCreate ? "Создайте задачу и назначьте исполнителя из бригады." : undefined}
+        />
+      )}
 
       <div className="space-y-2">
         {tasks.map((task) => (
@@ -127,15 +136,25 @@ export function TasksPanel({
             </div>
             {task.description && <p className="mt-1 text-sm text-text-secondary">{task.description}</p>}
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
-              {task.assignee && <span>👤 {task.assignee.name}</span>}
-              {task.deadline && <span>⏰ {format(new Date(task.deadline), "dd.MM.yyyy")}</span>}
+              {task.assignee && (
+                <span className="inline-flex items-center gap-1.5">
+                  <User size={13} />
+                  {task.assignee.name}
+                </span>
+              )}
+              {task.deadline && (
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarClock size={13} />
+                  {format(new Date(task.deadline), "dd.MM.yyyy")}
+                </span>
+              )}
             </div>
             {NEXT_STATUS[task.status] && (
               <button
                 onClick={() => advanceStatus(task)}
                 className="btn-secondary mt-3 w-full py-2 text-base"
               >
-                {task.status === "REVIEW" ? "✓ Принять" : `Перевести в «${STATUS_LABEL[NEXT_STATUS[task.status]!]}»`}
+                {task.status === "REVIEW" ? "Принять работу" : `Перевести в «${STATUS_LABEL[NEXT_STATUS[task.status]!]}»`}
               </button>
             )}
           </div>
@@ -220,7 +239,7 @@ function NewTaskForm({
         ))}
       </select>
       <input className="input" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-      {error && <p className="rounded-xl bg-status-red/10 px-4 py-2 text-status-red">{error}</p>}
+      {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         {loading ? "Создаём…" : "Создать задачу"}
       </button>

@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -17,12 +18,23 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Пароль", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() }
-        });
+        const email = credentials.email.toLowerCase().trim();
+
+        // Throttle by IP and by account so neither a single host nor a single
+        // targeted mailbox can be brute-forced. NextAuth hands us a bare
+        // request-like object here, so the headers are read defensively.
+        const headers = (req?.headers ?? {}) as Record<string, string | undefined>;
+        const ip = (headers["x-forwarded-for"] ?? headers["x-real-ip"] ?? "unknown")
+          .split(",")[0]
+          .trim();
+
+        if (!rateLimit(`login-ip:${ip}`, 20, 15 * 60).ok) return null;
+        if (!rateLimit(`login-email:${email}`, 10, 15 * 60).ok) return null;
+
+        const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
 
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);

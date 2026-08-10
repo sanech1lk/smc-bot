@@ -22,14 +22,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const membership = await getMembership(stageRef.projectId, user.id);
   if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
 
-  const items = await prisma.estimate.findMany({
-    where: { stageId: params.id },
-    orderBy: { createdAt: "asc" }
-  });
+  const [items, project] = await Promise.all([
+    prisma.estimate.findMany({ where: { stageId: params.id }, orderBy: { createdAt: "asc" } }),
+    prisma.project.findUnique({ where: { id: stageRef.projectId }, select: { currency: true } })
+  ]);
 
   const total = items.reduce((sum, item) => sum + item.totalPrice, 0);
 
-  return NextResponse.json({ items, total });
+  return NextResponse.json({ items, total, currency: project?.currency ?? "RUB" });
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {

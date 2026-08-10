@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from "react";
 import { format } from "date-fns";
 import { useStageSocket } from "@/lib/use-stage-socket";
 import { SignaturePad } from "@/components/stage/signature-pad";
+import { Check, ListChecks, Plus, Trash2 } from "lucide-react";
+import { EmptyState, ErrorNote } from "@/components/ui";
 import type { ChecklistItemSummary, ProjectRole, SignatureSummary } from "@/types/models";
 
 export function ChecklistPanel({
@@ -117,7 +119,7 @@ export function ChecklistPanel({
   const allChecked = items.length > 0 && items.every((i) => i.checked);
 
   return (
-    <div className="px-4 py-4">
+    <div className="px-4 py-4 pb-24 lg:pb-6">
       <p className="mb-3 text-text-secondary">
         Отметьте пункты приёмки этапа. Когда всё готово — заказчик подписывает акт пальцем на экране.
       </p>
@@ -132,28 +134,34 @@ export function ChecklistPanel({
               }`}
               aria-label={item.checked ? "Снять отметку" : "Отметить выполненным"}
             >
-              {item.checked ? "✓" : ""}
+              {item.checked && <Check size={18} strokeWidth={3} />}
             </button>
             <span className={`flex-1 ${item.checked ? "text-text-secondary line-through" : ""}`}>{item.text}</span>
             {canEditList && (
               <button
                 onClick={() => handleRemove(item.id)}
                 className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-status-red active:bg-status-red/10"
-                aria-label="Удалить пункт"
+                aria-label={`Удалить пункт «${item.text}»`}
               >
-                ✕
+                <Trash2 size={16} />
               </button>
             )}
           </div>
         ))}
-        {items.length === 0 && <p className="text-center text-text-secondary">Чек-лист пуст</p>}
+        {items.length === 0 && (
+          <EmptyState
+            icon={ListChecks}
+            title="Чек-лист пуст"
+            description={canEditList ? "Добавьте пункты приёмки, которые проверит заказчик." : undefined}
+          />
+        )}
       </div>
 
       {canEditList && (
         <form onSubmit={handleAdd} className="mt-3 flex gap-2">
           <input className="input flex-1" placeholder="Новый пункт чек-листа" value={newText} onChange={(e) => setNewText(e.target.value)} />
-          <button type="submit" className="btn-secondary">
-            +
+          <button type="submit" className="btn-secondary px-4" aria-label="Добавить пункт">
+            <Plus size={18} />
           </button>
         </form>
       )}
@@ -171,7 +179,7 @@ export function ChecklistPanel({
           value={signerName}
           onChange={(e) => setSignerName(e.target.value)}
         />
-        {error && <p className="mb-3 rounded-xl bg-status-red/10 px-4 py-2 text-status-red">{error}</p>}
+        {error && <div className="mb-3"><ErrorNote>{error}</ErrorNote></div>}
         <SignaturePad onSave={handleSignature} />
         {saving && <p className="mt-2 text-center text-text-secondary">Сохраняем подпись…</p>}
       </div>

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { ServiceWorkerRegister } from "@/components/sw-register";
+import { themeInitScript } from "@/components/theme";
 
 export const metadata: Metadata = {
   title: "BudChat — мессенджер для стройки",
@@ -27,13 +28,17 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#0f1115"
+  themeColor: "#0b0d12"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" className="dark">
-      <body className="min-h-screen bg-bg text-text-primary antialiased">
+    <html lang="ru" data-theme="dark" suppressHydrationWarning>
+      <head>
+        {/* Runs before paint so the stored theme applies without a flash. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="min-h-screen bg-bg text-text-primary antialiased tracking-tightish">
         <Providers>{children}</Providers>
         <ServiceWorkerRegister />
       </body>

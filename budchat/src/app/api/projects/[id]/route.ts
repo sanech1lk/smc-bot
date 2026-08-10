@@ -4,11 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getMembership, requireProjectRole } from "@/lib/access";
 import { ProjectRole, ProjectStatus } from "@prisma/client";
+import { isSupportedCurrency } from "@/lib/currency";
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
   address: z.string().min(3).optional(),
-  status: z.nativeEnum(ProjectStatus).optional()
+  status: z.nativeEnum(ProjectStatus).optional(),
+  currency: z.string().refine(isSupportedCurrency, "Валюта не поддерживается").optional()
 });
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {

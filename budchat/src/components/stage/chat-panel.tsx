@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 import { useStageSocket } from "@/lib/use-stage-socket";
 import { MicButton } from "@/components/mic-button";
+import { Clock3, MessageCircle, SendHorizontal } from "lucide-react";
+import { EmptyState, SkeletonChat } from "@/components/ui";
 import { enqueueOutboxItem, getAllOutboxItems, type OutboxMessageItem } from "@/lib/outbox";
 import { useOutboxFlush } from "@/lib/use-outbox-flush";
 import type { MessageSummary } from "@/types/models";
@@ -128,11 +130,15 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
   }
 
   return (
-    <div className="flex h-[calc(100dvh-11.5rem)] flex-col">
+    <div className="flex h-[calc(100dvh-13.5rem)] flex-col lg:h-[calc(100dvh-12rem)]">
       <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
-        {loading && <p className="text-center text-text-secondary">Загрузка сообщений…</p>}
+        {loading && <SkeletonChat />}
         {!loading && messages.length === 0 && (
-          <p className="mt-8 text-center text-text-secondary">Пока нет сообщений. Начните обсуждение этапа.</p>
+          <EmptyState
+            icon={MessageCircle}
+            title="Пока нет сообщений"
+            description="Начните обсуждение этапа — вся переписка останется привязана именно к нему."
+          />
         )}
         {messages.map((m) => {
           const mine = m.sender.id === currentUserId;
@@ -150,7 +156,14 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
                     m.pending ? "text-text-muted" : mine ? "text-white/70" : "text-text-muted"
                   }`}
                 >
-                  {m.pending ? "⏳ ждёт сети" : format(new Date(m.createdAt), "HH:mm")}
+                  {m.pending ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 size={11} />
+                      ждёт сети
+                    </span>
+                  ) : (
+                    format(new Date(m.createdAt), "HH:mm")
+                  )}
                 </p>
               </div>
             </div>
@@ -159,7 +172,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} className="bottom-nav-safe flex gap-2 border-t border-border px-3 py-3">
+      <form onSubmit={handleSend} className="flex gap-2 border-t border-border px-3 py-3">
         <input
           className="input flex-1"
           placeholder="Сообщение…"
@@ -169,11 +182,11 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
         <MicButton onResult={(spoken) => setText((prev) => (prev ? `${prev} ${spoken}` : spoken))} />
         <button
           type="submit"
-          className="btn-primary aspect-square !px-0 w-14"
+          className="btn-primary aspect-square w-14 !px-0"
           disabled={sending || !text.trim()}
           aria-label="Отправить"
         >
-          ➤
+          <SendHorizontal size={20} />
         </button>
       </form>
     </div>

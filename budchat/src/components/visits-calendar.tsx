@@ -14,6 +14,8 @@ import {
   subMonths
 } from "date-fns";
 import { ru } from "date-fns/locale";
+import { CalendarPlus, ChevronLeft, ChevronRight, Trash2, Truck, X } from "lucide-react";
+import { ErrorNote } from "@/components/ui";
 import type { StageSummary, VisitSummary } from "@/types/models";
 
 export function VisitsCalendar({
@@ -66,7 +68,7 @@ export function VisitsCalendar({
             className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-elevated"
             aria-label="Предыдущий месяц"
           >
-            ‹
+            <ChevronLeft size={18} />
           </button>
           <p className="font-semibold capitalize">{format(month, "LLLL yyyy", { locale: ru })}</p>
           <button
@@ -74,7 +76,7 @@ export function VisitsCalendar({
             className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-elevated"
             aria-label="Следующий месяц"
           >
-            ›
+            <ChevronRight size={18} />
           </button>
         </div>
 
@@ -118,8 +120,9 @@ export function VisitsCalendar({
         <div className="mb-2 flex items-center justify-between">
           <p className="font-semibold">{format(selected, "d MMMM", { locale: ru })}</p>
           {canEdit && (
-            <button className="btn-secondary py-2 text-base" onClick={() => setFormOpen((v) => !v)}>
-              {formOpen ? "Отмена" : "+ Выезд"}
+            <button className="btn-secondary py-2 text-sm" onClick={() => setFormOpen((v) => !v)}>
+              {formOpen ? <X size={16} /> : <CalendarPlus size={16} />}
+              {formOpen ? "Отмена" : "Выезд"}
             </button>
           )}
         </div>
@@ -143,7 +146,7 @@ export function VisitsCalendar({
         <div className="space-y-2">
           {selectedVisits.map((v) => (
             <div key={v.id} className="card flex items-start gap-3">
-              <span className="mt-1 text-2xl">🚚</span>
+              <Truck size={22} className="mt-0.5 flex-shrink-0 text-text-muted" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{v.crewName || "Бригада"}</p>
                 {v.stage && <p className="text-sm text-text-secondary">Этап: {v.stage.name}</p>}
@@ -154,9 +157,9 @@ export function VisitsCalendar({
                 <button
                   onClick={() => handleDelete(v.id)}
                   className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-status-red active:bg-status-red/10"
-                  aria-label="Удалить"
+                  aria-label="Удалить выезд"
                 >
-                  ✕
+                  <Trash2 size={17} />
                 </button>
               )}
             </div>
@@ -245,7 +248,7 @@ function AddVisitForm({
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
-      {error && <p className="rounded-xl bg-status-red/10 px-4 py-2 text-status-red">{error}</p>}
+      {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         {loading ? "Сохраняем…" : "Запланировать выезд"}
       </button>

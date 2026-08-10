@@ -2,20 +2,31 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { CalendarDays, Layers, Map, Users } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { StageList } from "@/components/stage-list";
 import { MembersPanel } from "@/components/members-panel";
 import { VisitsCalendar } from "@/components/visits-calendar";
 import { PlanPanel } from "@/components/plan-panel";
+import { CurrencyPicker } from "@/components/currency-picker";
+import { ErrorNote, SkeletonList } from "@/components/ui";
 import type { ProjectMemberSummary, ProjectRole, StageSummary, VisitSummary } from "@/types/models";
 
 type Tab = "stages" | "plan" | "members" | "calendar";
+
+const TABS: { id: Tab; label: string; icon: typeof Layers }[] = [
+  { id: "stages", label: "Этапы", icon: Layers },
+  { id: "plan", label: "План", icon: Map },
+  { id: "members", label: "Участники", icon: Users },
+  { id: "calendar", label: "Календарь", icon: CalendarDays }
+];
 
 interface ProjectDetail {
   id: string;
   name: string;
   address: string;
   status: string;
+  currency: string;
   stages: StageSummary[];
   members: ProjectMemberSummary[];
 }
@@ -56,8 +67,11 @@ export default function ProjectDetailPage() {
 
   if (error) {
     return (
-      <div className="p-6 text-center text-status-red">
-        {error}
+      <div>
+        <TopBar title="Объект" backHref="/projects" />
+        <div className="p-6">
+          <ErrorNote>{error}</ErrorNote>
+        </div>
       </div>
     );
   }
@@ -66,46 +80,55 @@ export default function ProjectDetailPage() {
     return (
       <div>
         <TopBar title="Объект" backHref="/projects" />
-        <p className="p-6 text-center text-text-secondary">Загрузка…</p>
+        <div className="px-4 py-4">
+          <SkeletonList rows={5} height="h-16" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="pb-10">
-      <TopBar title={project.name} backHref="/projects" />
+      <TopBar title={project.name} subtitle={project.address} backHref="/projects" />
 
-      <div className="border-b border-border px-4 py-3">
-        <p className="text-text-secondary">{project.address}</p>
+      <div className="sticky top-[calc(4.75rem+env(safe-area-inset-top))] z-20 flex gap-2 overflow-x-auto border-b border-border bg-bg/85 px-4 py-2 backdrop-blur-md">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
+              tab === id
+                ? "bg-brand text-white shadow-card"
+                : "bg-bg-card text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="sticky top-[calc(4rem+env(safe-area-inset-top))] z-10 flex gap-2 overflow-x-auto border-b border-border bg-bg px-4 py-2">
-        <TabButton active={tab === "stages"} onClick={() => setTab("stages")}>
-          Этапы
-        </TabButton>
-        <TabButton active={tab === "plan"} onClick={() => setTab("plan")}>
-          План
-        </TabButton>
-        <TabButton active={tab === "members"} onClick={() => setTab("members")}>
-          Участники
-        </TabButton>
-        <TabButton active={tab === "calendar"} onClick={() => setTab("calendar")}>
-          Календарь
-        </TabButton>
-      </div>
-
-      <div className="px-4 py-4">
+      <div key={tab} className="animate-in px-4 py-4">
         {tab === "stages" && (
           <StageList projectId={project.id} stages={project.stages} myRole={myRole} onChange={loadProject} />
         )}
         {tab === "plan" && <PlanPanel projectId={project.id} stages={project.stages} myRole={myRole} />}
         {tab === "members" && (
-          <MembersPanel
-            projectId={project.id}
-            members={project.members}
-            myRole={myRole}
-            onChange={loadProject}
-          />
+          <div className="space-y-4">
+            {myRole === "ADMIN" && (
+              <CurrencyPicker
+                projectId={project.id}
+                value={project.currency}
+                onChanged={loadProject}
+              />
+            )}
+            <MembersPanel
+              projectId={project.id}
+              members={project.members}
+              myRole={myRole}
+              onChange={loadProject}
+            />
+          </div>
         )}
         {tab === "calendar" && (
           <VisitsCalendar
@@ -118,26 +141,5 @@ export default function ProjectDetailPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex-shrink-0 rounded-xl px-4 py-2.5 font-semibold transition ${
-        active ? "bg-brand text-white" : "bg-bg-card text-text-secondary"
-      }`}
-    >
-      {children}
-    </button>
   );
 }

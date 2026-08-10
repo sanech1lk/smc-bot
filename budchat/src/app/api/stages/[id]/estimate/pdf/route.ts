@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getMembership } from "@/lib/access";
 import { PDF_FONT_BOLD, PDF_FONT_REGULAR } from "@/lib/pdf-fonts";
+import { formatAmount, getCurrency } from "@/lib/currency";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
@@ -11,7 +12,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   const stage = await prisma.stage.findUnique({
     where: { id: params.id },
-    include: { project: { select: { name: true, address: true } } }
+    include: { project: { select: { name: true, address: true, currency: true } } }
   });
   if (!stage) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
 
@@ -28,6 +29,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     projectName: stage.project.name,
     projectAddress: stage.project.address,
     stageName: stage.name,
+    currency: stage.project.currency,
     items,
     total
   });
@@ -54,6 +56,7 @@ function renderEstimatePdf(args: {
   projectName: string;
   projectAddress: string;
   stageName: string;
+  currency: string;
   items: EstimateRow[];
   total: number;
 }): Promise<Buffer> {
@@ -110,9 +113,9 @@ function renderEstimatePdf(args: {
       doc.fillColor("#000");
       doc.text(item.itemName, colX.name, y, { width: 250 });
       doc.text(item.unit, colX.unit, y, { width: 40 });
-      doc.text(formatMoney(item.quantity), colX.qty, y, { width: 50, align: "right" });
-      doc.text(formatMoney(item.unitPrice), colX.price, y, { width: 60, align: "right" });
-      doc.text(formatMoney(item.totalPrice), colX.total, y, { width: 75, align: "right" });
+      doc.text(formatAmount(item.quantity, args.currency), colX.qty, y, { width: 50, align: "right" });
+      doc.text(formatAmount(item.unitPrice, args.currency), colX.price, y, { width: 60, align: "right" });
+      doc.text(formatAmount(item.totalPrice, args.currency), colX.total, y, { width: 75, align: "right" });
       doc.moveDown(0.6);
 
       if (doc.y > 760) {
@@ -129,14 +132,15 @@ function renderEstimatePdf(args: {
     doc.moveDown(0.4);
 
     doc.font("bold").fontSize(13);
-    doc.text(`Итого: ${formatMoney(args.total)} ₽`, 40, doc.y, { width: 515, align: "right" });
+    doc.text(
+      `Итого: ${formatAmount(args.total, args.currency)} ${getCurrency(args.currency).symbol}`,
+      40,
+      doc.y,
+      { width: 515, align: "right" }
+    );
 
     doc.end();
   });
-}
-
-function formatMoney(n: number) {
-  return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(n);
 }
 
 function transliterate(input: string) {

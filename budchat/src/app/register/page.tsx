@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { UserPlus } from "lucide-react";
+import { ErrorNote, InfoNote, Logo } from "@/components/ui";
+import { AuthFooter } from "@/components/auth-footer";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const inviteToken = params.get("invite") ?? undefined;
+
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(params.get("email") ?? "");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +29,7 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, password })
+        body: JSON.stringify({ name, email, phone, password, inviteToken })
       });
       const data = await res.json();
 
@@ -51,14 +57,18 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen flex-col justify-center px-6 py-10">
-      <div className="mx-auto w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand text-3xl font-bold text-white">
-            Б
-          </div>
-          <h1 className="text-2xl font-bold">Регистрация</h1>
+      <div className="animate-in mx-auto w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Logo size={60} />
+          <h1 className="mt-4 text-2xl font-bold">Регистрация</h1>
           <p className="mt-1 text-text-secondary">Создайте аккаунт в BudChat</p>
         </div>
+
+        {inviteToken && (
+          <div className="mb-4">
+            <InfoNote>Вас пригласили на объект — он появится сразу после регистрации</InfoNote>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
@@ -96,11 +106,10 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {error && (
-            <p className="rounded-xl bg-status-red/10 px-4 py-2 text-status-red">{error}</p>
-          )}
+          {error && <ErrorNote>{error}</ErrorNote>}
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>
+            <UserPlus size={18} />
             {loading ? "Создаём аккаунт…" : "Зарегистрироваться"}
           </button>
         </form>
@@ -111,7 +120,17 @@ export default function RegisterPage() {
             Войти
           </Link>
         </p>
+
+        <AuthFooter />
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }

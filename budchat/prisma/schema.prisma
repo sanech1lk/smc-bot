@@ -62,6 +62,12 @@ enum PinStatus {
   RESOLVED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
 // ---------------------------------------------------------------------------
 // Core models
 // ---------------------------------------------------------------------------
@@ -85,8 +91,50 @@ model User {
   signatures       Signature[]
   pushSubscriptions PushSubscription[]
   planPins         PlanPin[]
+  resetTokens      PasswordResetToken[]
+  sentInvitations  Invitation[]      @relation("InvitationInviter")
 
   @@map("users")
+}
+
+// Single-use, short-lived token emailed to a user who forgot their password.
+// Only the hash is stored, so a leaked database can't be used to reset accounts.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+// Lets an admin add someone to a project before that person has even
+// registered. With an email set, the membership is created automatically
+// when that address signs up; with email null it is a shareable link/QR
+// code that any signed-in user can redeem on site.
+model Invitation {
+  id          String           @id @default(cuid())
+  projectId   String
+  email       String?
+  role        ProjectRole      @default(WORKER)
+  status      InvitationStatus @default(PENDING)
+  tokenHash   String           @unique
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitedBy User    @relation("InvitationInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email, status])
+  @@index([projectId])
+  @@map("invitations")
 }
 
 // A browser's Web Push subscription for a given user, used to deliver
@@ -111,13 +159,16 @@ model Project {
   address     String
   status      ProjectStatus @default(ACTIVE)
   coverColor  String?
+  // ISO-4217 code driving how estimate amounts are formatted app-wide.
+  currency    String        @default("RUB")
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  members ProjectMember[]
-  stages  Stage[]
-  visits  Visit[]
-  plans   Plan[]
+  members     ProjectMember[]
+  stages      Stage[]
+  visits      Visit[]
+  plans       Plan[]
+  invitations Invitation[]
 
   @@map("projects")
 }

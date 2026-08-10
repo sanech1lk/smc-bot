@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ArrowDown, ArrowUp, Check, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { StatusDot } from "@/components/status-dot";
 import { STAGE_STATUS_META } from "@/lib/stages";
 import type { ProjectRole, StageSummary } from "@/types/models";
@@ -72,48 +73,49 @@ export function StageList({
     <div className="space-y-2">
       {canEdit && (
         <button
-          className="btn-ghost mb-1 w-full border border-border-soft py-2 text-base"
+          className="btn-ghost mb-1 w-full border border-border py-2.5 text-sm"
           onClick={() => setEditMode((v) => !v)}
         >
-          {editMode ? "Готово" : "✎ Редактировать этапы"}
+          {editMode ? <Check size={17} /> : <Pencil size={16} />}
+          {editMode ? "Готово" : "Редактировать этапы"}
         </button>
       )}
 
       {sorted.map((stage, index) => {
         if (editMode) {
           return (
-            <div key={stage.id} className="card space-y-3">
+            <div key={stage.id} className="animate-in card space-y-3">
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-bg-elevated text-sm font-bold text-text-secondary">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated text-sm font-bold text-text-secondary">
                   {index + 1}
                 </span>
                 <StatusDot status={stage.status} />
-                <span className="min-w-0 flex-1 truncate text-lg font-semibold">{stage.name}</span>
+                <span className="min-w-0 flex-1 truncate text-base font-semibold">{stage.name}</span>
               </div>
               <div className="flex gap-2">
                 <button
                   disabled={busy || index === 0}
                   onClick={() => move(index, -1)}
-                  className="btn-secondary flex-1 py-2.5 text-base disabled:opacity-30"
-                  aria-label="Переместить выше"
+                  className="btn-secondary flex-1 py-2.5 text-sm disabled:opacity-30"
                 >
-                  ↑ Выше
+                  <ArrowUp size={16} />
+                  Выше
                 </button>
                 <button
                   disabled={busy || index === sorted.length - 1}
                   onClick={() => move(index, 1)}
-                  className="btn-secondary flex-1 py-2.5 text-base disabled:opacity-30"
-                  aria-label="Переместить ниже"
+                  className="btn-secondary flex-1 py-2.5 text-sm disabled:opacity-30"
                 >
-                  ↓ Ниже
+                  <ArrowDown size={16} />
+                  Ниже
                 </button>
                 <button
                   disabled={busy || sorted.length <= 1}
                   onClick={() => removeStage(stage.id)}
-                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-status-red disabled:opacity-30 active:bg-status-red/10"
-                  aria-label="Удалить этап"
+                  className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors hover:text-status-red disabled:opacity-30"
+                  aria-label={`Удалить этап ${stage.name}`}
                 >
-                  ✕
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
@@ -124,31 +126,34 @@ export function StageList({
           <Link
             key={stage.id}
             href={`/projects/${projectId}/stages/${stage.id}`}
-            className="card flex items-center gap-3 active:scale-[0.99] transition"
+            className="card group flex items-center gap-3 transition-all duration-150 hover:border-border-soft active:scale-[0.99]"
           >
-            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-bg-elevated text-sm font-bold text-text-secondary">
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated text-sm font-bold text-text-secondary">
               {index + 1}
             </span>
-            <span className="min-w-0 flex-1 truncate text-lg font-semibold">{stage.name}</span>
-            <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+            <span className="min-w-0 flex-1 truncate text-base font-semibold">{stage.name}</span>
+            <span className={`chip flex-shrink-0 py-1 text-xs ${STAGE_STATUS_META[stage.status].chip}`}>
               <StatusDot status={stage.status} />
-              {STAGE_STATUS_META[stage.status].label}
+              <span className="hidden xs:inline">{STAGE_STATUS_META[stage.status].label}</span>
             </span>
-            <span className="text-text-muted">›</span>
+            <ChevronRight
+              size={18}
+              className="flex-shrink-0 text-text-muted transition-transform group-hover:translate-x-0.5"
+            />
           </Link>
         );
       })}
 
       {editMode && (
-        <form onSubmit={handleAddStage} className="flex gap-2 pt-1">
+        <form onSubmit={handleAddStage} className="animate-in flex gap-2 pt-1">
           <input
             className="input"
             placeholder="Новый этап"
             value={newStageName}
             onChange={(e) => setNewStageName(e.target.value)}
           />
-          <button type="submit" className="btn-secondary" disabled={busy}>
-            + Добавить
+          <button type="submit" className="btn-secondary px-4" disabled={busy}>
+            <Plus size={18} />
           </button>
         </form>
       )}
