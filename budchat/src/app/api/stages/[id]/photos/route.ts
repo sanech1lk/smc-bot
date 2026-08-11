@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getMembership, getStageWithProjectId } from "@/lib/access";
 import { PhotoTag } from "@prisma/client";
 import { emitToStage } from "@/lib/socket-server";
+import { sendPushToProjectMembers } from "@/lib/push-server";
 
 const ALLOWED_TAGS = new Set(Object.values(PhotoTag));
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
@@ -106,6 +107,22 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   });
 
   emitToStage(params.id, "photo:new", photo);
+
+  // Off by default (see UserSettings.notifyPhotos) — a photo lands on the
+  // stage feed constantly during a normal workday, and pushing every one of
+  // them to the whole team by default would train people to ignore BudChat
+  // notifications entirely.
+  sendPushToProjectMembers(
+    stageRef.projectId,
+    {
+      title: `Новое фото · ${stageRef.name}`,
+      body: photo.uploadedBy.name,
+      url: `/projects/${stageRef.projectId}/stages/${params.id}`,
+      tag: `photo-${photo.id}`
+    },
+    user.id,
+    "photos"
+  ).catch((err) => console.error("Push notify failed", err));
 
   return NextResponse.json({ photo }, { status: 201 });
 }

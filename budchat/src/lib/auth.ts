@@ -50,10 +50,19 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
         token.phone = (user as any).phone;
+      }
+      // Lets the client push a profile edit into the JWT via useSession().update(...)
+      // without forcing a full sign-out/sign-in round trip.
+      if (trigger === "update" && session) {
+        if (typeof session.name === "string") token.name = session.name;
+        if (typeof session.phone === "string" || session.phone === undefined) {
+          token.phone = session.phone;
+        }
       }
       return token;
     },

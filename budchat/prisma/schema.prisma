@@ -121,8 +121,53 @@ model User {
   createdPunchItems   PunchItem[]    @relation("PunchAuthor")
   assignedPunchItems  PunchItem[]    @relation("PunchAssignee")
   uploadedDocuments   Document[]
+  settings            UserSettings?
 
   @@map("users")
+}
+
+/// Per-user preferences. Created lazily on first read, so an account that
+/// never opens the settings screen costs nothing.
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Sound and vibration for incoming messages.
+  soundEnabled     Boolean  @default(true)
+  soundName        String   @default("ping")
+  soundVolume      Int      @default(70)
+  vibrationEnabled Boolean  @default(true)
+  /// Play a sound for the chat that is already open on screen. Off by default:
+  /// hearing a chime for a message you are looking at is pure noise.
+  soundInOpenChat  Boolean  @default(false)
+  /// Short click when your own message leaves the device.
+  soundOnSend      Boolean  @default(false)
+
+  // Quiet hours, stored as minutes from midnight in the user's own timezone.
+  quietEnabled Boolean @default(false)
+  quietFrom    Int     @default(1320) // 22:00
+  quietTo      Int     @default(420) //  07:00
+
+  // Which events are worth interrupting someone on a building site for.
+  notifyMessages     Boolean @default(true)
+  notifyTasks        Boolean @default(true)
+  notifyChangeOrders Boolean @default(true)
+  notifyPunch        Boolean @default(true)
+  notifyPhotos       Boolean @default(false)
+
+  /// Interface scale for bright sunlight and older eyes: 100, 115 or 130.
+  textScale Int @default(100)
+
+  /// Personalised advertising is opt-in under GDPR: this must default to false
+  /// and only ever be set by an explicit action, with the moment recorded.
+  adsPersonalized Boolean   @default(false)
+  adsConsentAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
 }
 
 // Single-use, short-lived token emailed to a user who forgot their password.

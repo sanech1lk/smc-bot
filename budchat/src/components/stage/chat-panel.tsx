@@ -5,6 +5,7 @@ import { format, isSameDay, isToday, isYesterday } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useSession } from "next-auth/react";
 import { useStageSocket } from "@/lib/use-stage-socket";
+import { useSettings } from "@/components/settings-provider";
 import { MicButton } from "@/components/mic-button";
 import { Clock3, MessageCircle, SendHorizontal } from "lucide-react";
 import { Avatar, EmptyState, SkeletonChat } from "@/components/ui";
@@ -72,6 +73,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const socket = useStageSocket(stageId);
+  const { notifyMessage, notifySend } = useSettings();
 
   useEffect(() => {
     let cancelled = false;
@@ -112,12 +114,21 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
   useEffect(() => {
     function onNew(message: MessageSummary) {
       setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+
+      // A message this device just sent arrives back over the socket too —
+      // it must not trigger the incoming-message sound a second time.
+      if (message.sender.id === currentUserId) return;
+
+      // "Chat open" only means something while the tab is actually visible;
+      // a backgrounded PWA should still alert like a closed chat would.
+      const chatIsOpen = document.visibilityState === "visible";
+      notifyMessage({ chatIsOpen });
     }
     socket.on("message:new", onNew);
     return () => {
       socket.off("message:new", onNew);
     };
-  }, [socket]);
+  }, [socket, currentUserId, notifyMessage]);
 
   useOutboxFlush({
     onMessageSent: (item, saved) => {
@@ -158,6 +169,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
       if (!res.ok) throw new Error("send failed");
       const data = await res.json();
       setMessages((prev) => (prev.some((m) => m.id === data.message.id) ? prev : [...prev, data.message]));
+      notifySend();
     } catch {
       await queueOffline(content);
     } finally {

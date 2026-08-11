@@ -67,7 +67,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       url: `/projects/${order.projectId}`,
       tag: `change-order-${updated.id}`
     },
-    user.id
+    user.id,
+    "changeOrders"
   ).catch((err) => console.error("Push notify failed", err));
 
   return NextResponse.json({ order: updated });

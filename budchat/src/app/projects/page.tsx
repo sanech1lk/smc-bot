@@ -5,7 +5,6 @@ import { Building2, LayoutGrid, Plus } from "lucide-react";
 import { TopBar } from "@/components/top-bar";
 import { ProjectCard } from "@/components/project-card";
 import { NewProjectDialog } from "@/components/new-project-dialog";
-import { NotificationsToggle } from "@/components/notifications-toggle";
 import { DashboardSummary } from "@/components/dashboard-summary";
 import { EmptyState, SkeletonList } from "@/components/ui";
 import type { ProjectSummary } from "@/types/models";
@@ -33,7 +32,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="pb-28">
-      <TopBar title="BudChat" right={<NotificationsToggle />} showAccountActions />
+      <TopBar title="BudChat" showAccountActions />
 
       <div className="sticky top-[calc(4.25rem+env(safe-area-inset-top))] z-20 flex gap-2 border-b border-border bg-bg/85 px-4 py-2 backdrop-blur-md">
         <ViewTab active={view === "projects"} onClick={() => setView("projects")} icon={Building2}>

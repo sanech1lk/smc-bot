@@ -88,7 +88,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         url: `/projects/${stageRef.projectId}/stages/${params.id}`,
         tag: `task-${task.id}`
       },
-      user.id
+      user.id,
+      "tasks"
     ).catch((err) => console.error("Push notify failed", err));
   }
 

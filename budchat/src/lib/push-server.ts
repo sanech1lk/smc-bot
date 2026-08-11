@@ -22,6 +22,21 @@ interface PushPayload {
   tag?: string;
 }
 
+/**
+ * Matches the `notify*` toggles in UserSettings. A category left out of a
+ * call site (there is no "category-less" push) always means the sender
+ * intends every recipient to be checked against their own preference.
+ */
+export type PushCategory = "messages" | "tasks" | "changeOrders" | "punch" | "photos";
+
+const CATEGORY_FIELD: Record<PushCategory, "notifyMessages" | "notifyTasks" | "notifyChangeOrders" | "notifyPunch" | "notifyPhotos"> = {
+  messages: "notifyMessages",
+  tasks: "notifyTasks",
+  changeOrders: "notifyChangeOrders",
+  punch: "notifyPunch",
+  photos: "notifyPhotos"
+};
+
 async function sendToSubscription(
   subscription: { id: string; endpoint: string; p256dh: string; auth: string },
   payload: PushPayload
@@ -45,10 +60,41 @@ async function sendToSubscription(
   }
 }
 
+/**
+ * Drops users who explicitly turned this category off. A user with no
+ * UserSettings row (never opened the settings screen) is treated as still on
+ * every default — new users keep getting notified until they choose not to.
+ */
+async function filterByPreference(userIds: string[], category: PushCategory): Promise<string[]> {
+  if (userIds.length === 0) return [];
+  const field = CATEGORY_FIELD[category];
+
+  const rows = await prisma.userSettings.findMany({
+    where: { userId: { in: userIds } },
+    select: {
+      userId: true,
+      notifyMessages: true,
+      notifyTasks: true,
+      notifyChangeOrders: true,
+      notifyPunch: true,
+      notifyPhotos: true
+    }
+  });
+
+  const optedOut = new Set(rows.filter((r) => r[field] === false).map((r) => r.userId));
+  return userIds.filter((id) => !optedOut.has(id));
+}
+
 /** Push to every user in the list except `excludeUserId` (typically the actor who triggered the event). */
-export async function sendPushToUsers(userIds: string[], payload: PushPayload, excludeUserId?: string) {
+export async function sendPushToUsers(
+  userIds: string[],
+  payload: PushPayload,
+  excludeUserId: string | undefined,
+  category: PushCategory
+) {
   if (!ensureConfigured()) return;
-  const targets = userIds.filter((id) => id !== excludeUserId);
+  const withoutActor = userIds.filter((id) => id !== excludeUserId);
+  const targets = await filterByPreference(withoutActor, category);
   if (targets.length === 0) return;
 
   const subscriptions = await prisma.pushSubscription.findMany({
@@ -58,10 +104,15 @@ export async function sendPushToUsers(userIds: string[], payload: PushPayload, e
   await Promise.all(subscriptions.map((sub) => sendToSubscription(sub, payload)));
 }
 
-export async function sendPushToProjectMembers(projectId: string, payload: PushPayload, excludeUserId?: string) {
+export async function sendPushToProjectMembers(
+  projectId: string,
+  payload: PushPayload,
+  excludeUserId: string | undefined,
+  category: PushCategory
+) {
   const members = await prisma.projectMember.findMany({
     where: { projectId },
     select: { userId: true }
   });
-  await sendPushToUsers(members.map((m) => m.userId), payload, excludeUserId);
+  await sendPushToUsers(members.map((m) => m.userId), payload, excludeUserId, category);
 }

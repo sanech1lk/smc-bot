@@ -65,7 +65,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         url: `/projects/${stage!.projectId}/stages/${task2.stageId}`,
         tag: `task-${task2.id}`
       },
-      user.id
+      user.id,
+      "tasks"
     ).catch((err) => console.error("Push notify failed", err));
   }
 

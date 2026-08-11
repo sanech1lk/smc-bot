@@ -75,7 +75,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       url: `/projects/${stageRef.projectId}/stages/${params.id}`,
       tag: `stage-${params.id}`
     },
-    user.id
+    user.id,
+    "messages"
   ).catch((err) => console.error("Push notify failed", err));
 
   return NextResponse.json({ message }, { status: 201 });

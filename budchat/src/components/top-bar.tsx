@@ -2,10 +2,9 @@
 
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { ArrowLeft, LogOut, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopBar({
   title,
@@ -45,7 +44,14 @@ export function TopBar({
           {right}
           {showAccountActions && (
             <>
-              <ThemeToggle />
+              <Link
+                href="/settings"
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-bg-card text-text-secondary transition-all hover:text-text-primary active:scale-95 active:bg-bg-elevated"
+                aria-label="Настройки"
+                title="Настройки"
+              >
+                <Settings size={20} strokeWidth={2} />
+              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="flex h-11 w-11 items-center justify-center rounded-full bg-bg-card text-text-secondary transition-all hover:text-status-red active:scale-95 active:bg-bg-elevated"

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getMembership } from "@/lib/access";
+import { sendPushToProjectMembers } from "@/lib/push-server";
 
 const createSchema = z.object({
   title: z.string().min(2, "Опишите дефект").max(200),
@@ -72,6 +73,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       photo: { select: { id: true, url: true } }
     }
   });
+
+  sendPushToProjectMembers(
+    params.id,
+    {
+      title: `Новый дефект${item.stage ? " · " + item.stage.name : ""}`,
+      body: item.title,
+      url: `/projects/${params.id}`,
+      tag: `punch-${item.id}`
+    },
+    user.id,
+    "punch"
+  ).catch((err) => console.error("Push notify failed", err));
 
   return NextResponse.json({ item }, { status: 201 });
 }
