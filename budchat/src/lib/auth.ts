@@ -44,7 +44,8 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          phone: user.phone ?? undefined
+          phone: user.phone ?? undefined,
+          emailVerified: user.emailVerifiedAt !== null
         };
       }
     })
@@ -55,6 +56,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.phone = (user as any).phone;
+        token.emailVerified = (user as any).emailVerified === true;
       }
       // Lets the client push a profile edit into the JWT via useSession().update(...)
       // without forcing a full sign-out/sign-in round trip.
@@ -63,6 +65,9 @@ export const authOptions: NextAuthOptions = {
         if (typeof session.phone === "string" || session.phone === undefined) {
           token.phone = session.phone;
         }
+        // Confirming the address happens in another tab, so the banner needs
+        // a way to clear without signing out and back in.
+        if (session.emailVerified === true) token.emailVerified = true;
       }
       return token;
     },
@@ -70,6 +75,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.id as string;
         (session.user as any).phone = token.phone as string | undefined;
+        (session.user as any).emailVerified = token.emailVerified === true;
       }
       return session;
     }

@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getMembership, getStageWithProjectId } from "@/lib/access";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const history = await prisma.estimateHistory.findMany({
     where: { stageId: params.id },

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -22,10 +23,10 @@ function toDateOnly(input: string): Date | null {
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const membership = await getMembership(params.id, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const logs = await prisma.dailyLog.findMany({
     where: { projectId: params.id },
@@ -40,21 +41,21 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 /** Creates or replaces the report for a day — one report per project per day. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const membership = await getMembership(params.id, user.id);
   if (!membership || membership.role === "CLIENT") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = upsertSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   const date = toDateOnly(parsed.data.date);
-  if (!date) return NextResponse.json({ error: "Некорректная дата" }, { status: 400 });
+  if (!date) return apiError("invalidDate", 400);
 
   const data = {
     weather: parsed.data.weather,

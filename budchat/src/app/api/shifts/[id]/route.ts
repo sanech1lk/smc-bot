@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -13,23 +14,23 @@ const closeSchema = z.object({
 /** Closes an open shift. */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const shift = await prisma.shift.findUnique({ where: { id: params.id } });
-  if (!shift) return NextResponse.json({ error: "Смена не найдена" }, { status: 404 });
+  if (!shift) return apiError("shiftNotFound", 404);
 
   const membership = await getMembership(shift.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
   // A shift belongs to the person who worked it; only they or an admin close it.
   if (shift.userId !== user.id && membership.role !== "ADMIN") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
-  if (shift.endedAt) return NextResponse.json({ error: "Смена уже закрыта" }, { status: 409 });
+  if (shift.endedAt) return apiError("shiftAlreadyClosed", 409);
 
   const body = await req.json().catch(() => ({}));
   const parsed = closeSchema.safeParse(body ?? {});
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   const updated = await prisma.shift.update({
@@ -48,14 +49,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const shift = await prisma.shift.findUnique({ where: { id: params.id } });
-  if (!shift) return NextResponse.json({ error: "Смена не найдена" }, { status: 404 });
+  if (!shift) return apiError("shiftNotFound", 404);
 
   const membership = await getMembership(shift.projectId, user.id);
   if (!membership || membership.role !== "ADMIN") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
 
   await prisma.shift.delete({ where: { id: params.id } });

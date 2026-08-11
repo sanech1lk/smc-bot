@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError, rateLimitedError } from "@/lib/api-error";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -12,35 +13,32 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   // Rate limited like the login form: this endpoint also reveals whether a
   // guessed password is correct, just from inside a session.
   const limit = rateLimit(`password-change:${user.id}:${clientIp(req)}`, 10, 15 * 60);
   if (!limit.ok) {
-    return NextResponse.json(
-      { error: "Слишком много попыток. Попробуйте позже." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
-    );
+    return rateLimitedError("tooManyAttempts", limit.retryAfterSeconds);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   const record = await prisma.user.findUnique({
     where: { id: user.id },
     select: { passwordHash: true }
   });
-  if (!record) return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+  if (!record) return apiError("userNotFound", 404);
 
   const valid = await bcrypt.compare(parsed.data.currentPassword, record.passwordHash);
-  if (!valid) return NextResponse.json({ error: "Текущий пароль неверный" }, { status: 403 });
+  if (!valid) return apiError("wrongCurrentPassword", 403);
 
   if (parsed.data.currentPassword === parsed.data.newPassword) {
-    return NextResponse.json({ error: "Новый пароль совпадает с текущим" }, { status: 400 });
+    return apiError("passwordSameAsCurrent", 400);
   }
 
   await prisma.$transaction([

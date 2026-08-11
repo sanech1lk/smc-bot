@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getMembership } from "@/lib/access";
@@ -11,10 +12,10 @@ import { ChangeOrderStatus, PunchStatus } from "@prisma/client";
  */
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const membership = await getMembership(params.id, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const project = await prisma.project.findUnique({
     where: { id: params.id },
@@ -30,7 +31,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       }
     }
   });
-  if (!project) return NextResponse.json({ error: "Объект не найден" }, { status: 404 });
+  if (!project) return apiError("projectNotFound", 404);
 
   const stageIds = project.stages.map((s) => s.id);
 

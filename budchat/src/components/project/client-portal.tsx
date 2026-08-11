@@ -11,6 +11,7 @@ import { StatusDot } from "@/components/status-dot";
 import { ErrorNote, SkeletonList } from "@/components/ui";
 import { STAGE_STATUS_KEY } from "@/lib/stages";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { ChangeOrderSummary, ProjectRole, StageSummary } from "@/types/models";
 
@@ -60,7 +61,7 @@ export function ClientPortal({ projectId }: { projectId: string }) {
       load();
     } else {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? t("changeOrders.errorDecide"));
+      setError(apiErrorMessage(t, body, "changeOrders.errorDecide"));
     }
   }
 

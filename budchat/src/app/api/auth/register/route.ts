@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { apiError, rateLimitedError } from "@/lib/api-error";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { InvitationStatus } from "@prisma/client";
 import { acceptInvitation } from "@/lib/invitations";
+import { issueEmailVerification } from "@/lib/email-verification";
 
 const registerSchema = z.object({
   name: z.string().min(2, "Введите имя"),
@@ -19,19 +20,13 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   const limit = rateLimit(`register:${ip}`, 10, 60 * 60);
   if (!limit.ok) {
-    return NextResponse.json(
-      { error: "Слишком много регистраций с этого адреса. Попробуйте позже." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
-    );
+    return rateLimitedError("tooManyRegistrations", limit.retryAfterSeconds);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Некорректные данные" },
-      { status: 400 }
-    );
+    return apiError("validationFailed", 400);
   }
 
   const { name, phone, password } = parsed.data;
@@ -39,7 +34,7 @@ export async function POST(req: Request) {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return NextResponse.json({ error: "Пользователь с таким email уже существует" }, { status: 409 });
+    return apiError("emailAlreadyRegistered", 409);
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -49,30 +44,18 @@ export async function POST(req: Request) {
     select: { id: true, name: true, email: true, phone: true }
   });
 
-  // Someone may have been invited to projects before they had an account —
-  // turn those pending invitations into real memberships on sign-up.
-  const invitations = await prisma.invitation.findMany({
-    where: { email, status: InvitationStatus.PENDING, expiresAt: { gt: new Date() } }
+  // Invitations addressed to this email are deliberately NOT redeemed here:
+  // anyone can type any address into the sign-up form, and honouring them now
+  // would let a stranger walk into a project they were merely invited to by
+  // name. They are redeemed in verifyEmailToken() once the address is proven.
+  await issueEmailVerification(user.id, email, name).catch((cause) => {
+    // A dead SMTP server must not block sign-up — the user can ask for a new
+    // link from inside the app.
+    console.error("Не удалось отправить письмо подтверждения:", cause);
   });
 
-  if (invitations.length > 0) {
-    await prisma.$transaction([
-      prisma.projectMember.createMany({
-        data: invitations.map((inv) => ({
-          projectId: inv.projectId,
-          userId: user.id,
-          role: inv.role
-        })),
-        skipDuplicates: true
-      }),
-      prisma.invitation.updateMany({
-        where: { id: { in: invitations.map((i) => i.id) } },
-        data: { status: InvitationStatus.ACCEPTED, acceptedAt: new Date() }
-      })
-    ]);
-  }
-
-  // A QR/link invitation carries no email, so it is redeemed by its token.
+  // A QR/link invitation is different: holding the link is the proof, and the
+  // foreman handed it over in person, so it is honoured immediately.
   let joinedFromToken = false;
   if (parsed.data.inviteToken) {
     const result = await acceptInvitation(parsed.data.inviteToken, user.id);
@@ -80,7 +63,7 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json(
-    { user, joinedProjects: invitations.length + (joinedFromToken ? 1 : 0) },
+    { user, joinedProjects: joinedFromToken ? 1 : 0, emailVerificationSent: true },
     { status: 201 }
   );
 }

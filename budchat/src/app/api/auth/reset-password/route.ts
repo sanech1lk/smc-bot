@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError, rateLimitedError } from "@/lib/api-error";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -14,16 +15,13 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   const limit = rateLimit(`reset:${ip}`, 10, 15 * 60);
   if (!limit.ok) {
-    return NextResponse.json(
-      { error: "Слишком много попыток. Попробуйте позже." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
-    );
+    return rateLimitedError("tooManyAttempts", limit.retryAfterSeconds);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   const record = await prisma.passwordResetToken.findUnique({
@@ -31,10 +29,7 @@ export async function POST(req: Request) {
   });
 
   if (!record || record.usedAt || record.expiresAt < new Date()) {
-    return NextResponse.json(
-      { error: "Ссылка недействительна или истекла. Запросите новую." },
-      { status: 400 }
-    );
+    return apiError("linkInvalidOrExpired", 400);
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 10);

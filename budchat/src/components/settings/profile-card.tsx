@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Pencil } from "lucide-react";
 import { Avatar, ErrorNote } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 /** Name and phone, editable inline. Email is shown but never changes here —
  *  it is the sign-in identity and changing it needs its own verified flow. */
@@ -33,7 +34,7 @@ export function ProfileCard() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("profileCard.errorSave"));
+      setError(apiErrorMessage(t, data, "profileCard.errorSave"));
       return;
     }
     await updateSession({ name: name.trim(), phone: phone.trim() || undefined });

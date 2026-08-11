@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { DEFAULT_SETTINGS, sanitizeSettingsPatch, type UserSettingsShape } from "@/lib/settings";
@@ -14,7 +15,7 @@ function toShape(row: Record<string, unknown>): UserSettingsShape {
 
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   // Created on first read rather than at registration, so accounts that never
   // touch the settings screen cost nothing.
@@ -29,13 +30,13 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const body = await req.json().catch(() => null);
   const patch = sanitizeSettingsPatch(body);
 
   if (Object.keys(patch).length === 0) {
-    return NextResponse.json({ error: "Нечего сохранять" }, { status: 400 });
+    return apiError("nothingToSave", 400);
   }
 
   // Consent has to be provable, so the moment it was given is recorded and

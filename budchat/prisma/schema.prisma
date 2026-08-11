@@ -100,6 +100,10 @@ model User {
   phone        String?
   passwordHash String
   avatarUrl    String?
+  // Null until the address is proven. Invitations addressed to an email are
+  // only honoured after that proof — otherwise registering with someone
+  // else's address would hand over their project membership.
+  emailVerifiedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -113,6 +117,7 @@ model User {
   pushSubscriptions PushSubscription[]
   planPins         PlanPin[]
   resetTokens      PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
   sentInvitations  Invitation[]      @relation("InvitationInviter")
   shifts           Shift[]
   dailyLogs        DailyLog[]
@@ -172,6 +177,20 @@ model UserSettings {
 
 // Single-use, short-lived token emailed to a user who forgot their password.
 // Only the hash is stored, so a leaked database can't be used to reset accounts.
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String

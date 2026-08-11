@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -14,10 +15,10 @@ const addMemberSchema = z.object({
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const membership = await getMembership(params.id, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const [members, invitations] = await Promise.all([
     prisma.projectMember.findMany({
@@ -37,15 +38,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const access = await requireProjectRole(params.id, user.id, [ProjectRole.ADMIN]);
-  if (!access.ok) return NextResponse.json({ error: access.message }, { status: access.status });
+  if (!access.ok) return apiError(access.code, access.status);
 
   const body = await req.json().catch(() => null);
   const parsed = addMemberSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   const email = parsed.data.email.toLowerCase().trim();
@@ -53,7 +54,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     where: { id: params.id },
     select: { name: true, address: true }
   });
-  if (!project) return NextResponse.json({ error: "Объект не найден" }, { status: 404 });
+  if (!project) return apiError("projectNotFound", 404);
 
   const targetUser = await prisma.user.findUnique({ where: { email } });
 
@@ -63,7 +64,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       where: { projectId_userId: { projectId: params.id, userId: targetUser.id } }
     });
     if (existing) {
-      return NextResponse.json({ error: "Пользователь уже добавлен в объект" }, { status: 409 });
+      return apiError("userAlreadyMember", 409);
     }
 
     const member = await prisma.projectMember.create({
@@ -91,7 +92,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     where: { projectId: params.id, email, status: InvitationStatus.PENDING, expiresAt: { gt: new Date() } }
   });
   if (alreadyInvited) {
-    return NextResponse.json({ error: "Приглашение уже отправлено на этот email" }, { status: 409 });
+    return apiError("invitationAlreadySent", 409);
   }
 
   const { token, tokenHash } = createToken();

@@ -19,3 +19,21 @@ export function emitToStage(stageId: string, event: string, payload: unknown) {
   if (!io) return;
   io.to(`stage:${stageId}`).emit(event, payload);
 }
+
+/**
+ * Membership is checked when a socket joins a stage room, but an already-open
+ * socket would keep receiving events after the person is removed from the
+ * project. Removing a member therefore has to evict their live connections
+ * too — otherwise a dismissed subcontractor keeps reading the crew's chat
+ * until they happen to close the tab.
+ */
+export function revokeStageAccess(userId: string, stageIds: string[]) {
+  const io = getIO();
+  if (!io || stageIds.length === 0) return;
+
+  for (const stageId of stageIds) {
+    io.in(`user:${userId}`).socketsLeave(`stage:${stageId}`);
+  }
+
+  io.to(`user:${userId}`).emit("access:revoked", { stageIds });
+}

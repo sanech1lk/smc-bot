@@ -5,6 +5,7 @@ import { signOut } from "next-auth/react";
 import { Download, KeyRound, Trash2 } from "lucide-react";
 import { ErrorNote, InfoNote, SettingRow, SettingSection, Sheet } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 export function AccountDangerZone() {
   const { t } = useLocale();
@@ -100,7 +101,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("accountDanger.errorChangePassword"));
+      setError(apiErrorMessage(t, data, "accountDanger.errorChangePassword"));
       return;
     }
     setDone(true);
@@ -175,7 +176,7 @@ function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void; onDel
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("accountDanger.errorDelete"));
+      setError(apiErrorMessage(t, data, "accountDanger.errorDelete"));
       return;
     }
     onDeleted();

@@ -10,6 +10,7 @@ import { Camera, Clock3, ImageIcon, MapPin, PenLine } from "lucide-react";
 import { AnnotationOverlay, PhotoAnnotator } from "@/components/stage/photo-annotator";
 import { EmptyState, SkeletonGrid } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import type { PhotoSummary, PhotoTag } from "@/types/models";
 
 const TAG_KEY: Record<PhotoTag, string> = {
@@ -148,7 +149,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
           await queueOffline(stamped);
         } else {
           const data = await res.json().catch(() => ({}));
-          alert(data.error ?? t("photos.errorUploadFailed"));
+          alert(apiErrorMessage(t, data, "photos.errorUploadFailed"));
         }
       } catch {
         // fetch threw — connection dropped mid-request. Queue it for later.

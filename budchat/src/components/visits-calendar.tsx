@@ -16,6 +16,7 @@ import {
 import { CalendarPlus, ChevronLeft, ChevronRight, Trash2, Truck, X } from "lucide-react";
 import { ErrorNote } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { StageSummary, VisitSummary } from "@/types/models";
 
@@ -230,7 +231,7 @@ function AddVisitForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("visits.errorCreate"));
+      setError(apiErrorMessage(t, data, "visits.errorCreate"));
       return;
     }
 

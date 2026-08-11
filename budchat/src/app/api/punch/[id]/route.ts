@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -15,28 +16,28 @@ const updateSchema = z.object({
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const item = await prisma.punchItem.findUnique({ where: { id: params.id } });
-  if (!item) return NextResponse.json({ error: "Дефект не найден" }, { status: 404 });
+  if (!item) return apiError("punchNotFound", 404);
 
   const membership = await getMembership(item.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const body = await req.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   // Only the customer signs a defect off as VERIFIED — that is the whole point
   // of the status; the contractor can go no further than FIXED.
   if (parsed.data.status === PunchStatus.VERIFIED && membership.role === "WORKER") {
-    return NextResponse.json({ error: "Принять устранение может заказчик или админ" }, { status: 403 });
+    return apiError("verifyClientOrAdminOnly", 403);
   }
   if (membership.role === "CLIENT") {
     const onlyStatus = Object.keys(parsed.data).every((k) => k === "status");
-    if (!onlyStatus) return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    if (!onlyStatus) return apiError("insufficientRights", 403);
   }
 
   const { dueDate, ...rest } = parsed.data;
@@ -60,14 +61,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const item = await prisma.punchItem.findUnique({ where: { id: params.id } });
-  if (!item) return NextResponse.json({ error: "Дефект не найден" }, { status: 404 });
+  if (!item) return apiError("punchNotFound", 404);
 
   const membership = await getMembership(item.projectId, user.id);
   if (!membership || membership.role === "CLIENT") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
 
   await prisma.punchItem.delete({ where: { id: params.id } });

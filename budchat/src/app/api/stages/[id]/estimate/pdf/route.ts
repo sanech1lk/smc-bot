@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import PDFDocument from "pdfkit";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -8,16 +9,16 @@ import { formatAmount, getCurrency } from "@/lib/currency";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stage = await prisma.stage.findUnique({
     where: { id: params.id },
     include: { project: { select: { name: true, address: true, currency: true } } }
   });
-  if (!stage) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stage) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stage.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const items = await prisma.estimate.findMany({
     where: { stageId: params.id },

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Logo, Skeleton } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 /**
  * Landing page for a scanned QR / shared invite link. A signed-in user is
@@ -37,7 +38,7 @@ export default function JoinPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        setError(data.error ?? t("join.errorFallback"));
+        setError(apiErrorMessage(t, data, "join.errorFallback"));
         return;
       }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
@@ -8,6 +9,8 @@ import { getMembership, getStageWithProjectId } from "@/lib/access";
 import { PhotoTag } from "@prisma/client";
 import { emitToStage } from "@/lib/socket-server";
 import { sendPushToProjectMembers } from "@/lib/push-server";
+import { enforceRateLimit, UPLOAD_LIMIT } from "@/lib/rate-limit";
+import { processPhoto } from "@/lib/image";
 
 const ALLOWED_TAGS = new Set(Object.values(PhotoTag));
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
@@ -22,13 +25,13 @@ function parseFiniteCoordinate(value: FormDataEntryValue | null, min: number, ma
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const { searchParams } = new URL(req.url);
   const tag = searchParams.get("tag");
@@ -47,16 +50,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
+
+  const limited = enforceRateLimit("upload-photo", user.id, UPLOAD_LIMIT);
+  if (limited) return limited;
 
   const formData = await req.formData().catch(() => null);
-  if (!formData) return NextResponse.json({ error: "Некорректный запрос" }, { status: 400 });
+  if (!formData) return apiError("badRequest", 400);
 
   const file = formData.get("file");
   const tagRaw = String(formData.get("tag") ?? "BEFORE");
@@ -66,24 +72,26 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const accuracyRaw = formData.get("accuracy");
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "Файл не передан" }, { status: 400 });
+    return apiError("fileMissing", 400);
   }
   if (!ALLOWED_MIME.has(file.type)) {
-    return NextResponse.json({ error: "Неподдерживаемый формат файла" }, { status: 400 });
+    return apiError("unsupportedFileType", 400);
   }
   if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: "Файл слишком большой (максимум 15МБ)" }, { status: 400 });
+    return apiError("fileTooLarge", 400, { limit: 15 });
   }
   if (!ALLOWED_TAGS.has(tagRaw as PhotoTag)) {
-    return NextResponse.json({ error: "Некорректный тег фото" }, { status: 400 });
+    return apiError("invalidPhotoTag", 400);
   }
 
   const uploadDir = path.join(process.cwd(), "public", "uploads", params.id);
   await mkdir(uploadDir, { recursive: true });
 
-  const ext = (file.type.split("/")[1] || "jpg").replace(/[^a-z0-9]/gi, "");
+  // Resized and stripped of metadata before it touches the disk — see
+  // lib/image.ts for why the GPS tags are dropped here specifically.
+  const original = Buffer.from(await file.arrayBuffer());
+  const { buffer, ext } = await processPhoto(original, file.type);
   const filename = `${crypto.randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(uploadDir, filename), buffer);
 
   const url = `/uploads/${params.id}/${filename}`;

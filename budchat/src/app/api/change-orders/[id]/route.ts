@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -21,27 +22,27 @@ const decisionSchema = z.object({
  */
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const order = await prisma.changeOrder.findUnique({ where: { id: params.id } });
-  if (!order) return NextResponse.json({ error: "Допработа не найдена" }, { status: 404 });
+  if (!order) return apiError("changeOrderNotFound", 404);
 
   const membership = await getMembership(order.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
   if (membership.role === "WORKER") {
-    return NextResponse.json({ error: "Решение принимает заказчик" }, { status: 403 });
+    return apiError("decisionClientOnly", 403);
   }
   if (order.status !== ChangeOrderStatus.PENDING) {
-    return NextResponse.json({ error: "Решение уже принято" }, { status: 409 });
+    return apiError("decisionAlreadyMade", 409);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = decisionSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
   if (parsed.data.signatureData && parsed.data.signatureData.length > 2_000_000) {
-    return NextResponse.json({ error: "Подпись слишком большая" }, { status: 400 });
+    return apiError("signatureTooLarge", 400);
   }
 
   const updated = await prisma.changeOrder.update({
@@ -76,18 +77,18 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const order = await prisma.changeOrder.findUnique({ where: { id: params.id } });
-  if (!order) return NextResponse.json({ error: "Допработа не найдена" }, { status: 404 });
+  if (!order) return apiError("changeOrderNotFound", 404);
 
   const membership = await getMembership(order.projectId, user.id);
   if (!membership || membership.role !== "ADMIN") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
   // A signed decision is the audit trail — it must not disappear.
   if (order.status !== ChangeOrderStatus.PENDING) {
-    return NextResponse.json({ error: "Согласованную допработу удалить нельзя" }, { status: 409 });
+    return apiError("approvedChangeOrderLocked", 409);
   }
 
   await prisma.changeOrder.delete({ where: { id: params.id } });

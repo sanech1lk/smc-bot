@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -16,13 +17,13 @@ const createTaskSchema = z.object({
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const tasks = await prisma.task.findMany({
     where: { stageId: params.id },
@@ -38,26 +39,26 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
   if (!membership || membership.role === "CLIENT") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = createTaskSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   if (parsed.data.assigneeId) {
     const assigneeMembership = await getMembership(stageRef.projectId, parsed.data.assigneeId);
     if (!assigneeMembership) {
-      return NextResponse.json({ error: "Исполнитель не состоит в объекте" }, { status: 400 });
+      return apiError("assigneeNotMember", 400);
     }
   }
 

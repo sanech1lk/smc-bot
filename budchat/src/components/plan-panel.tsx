@@ -5,6 +5,7 @@ import Image from "next/image";
 import { AlertCircle, Check, Map as MapIcon, Plus, Trash2, Upload } from "lucide-react";
 import { EmptyState, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { bcp47Tag } from "@/lib/i18n";
 import type { PlanPinSummary, PlanSummary, ProjectRole, StageSummary } from "@/types/models";
 
@@ -81,7 +82,7 @@ export function PlanPanel({
       setActivePlanId(data.plan.id);
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? t("plan.errorUpload"));
+      alert(apiErrorMessage(t, data, "plan.errorUpload"));
     }
   }
 
@@ -112,7 +113,7 @@ export function PlanPanel({
       setPendingPoint(null);
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? t("plan.errorAddPin"));
+      alert(apiErrorMessage(t, data, "plan.errorAddPin"));
     }
   }
 

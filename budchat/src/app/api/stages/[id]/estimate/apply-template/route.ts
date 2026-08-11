@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -15,13 +16,13 @@ function round2(n: number) {
 /** Lists available templates, most relevant to this stage first. */
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const templates = stageRef.name ? templatesForStage(stageRef.name) : ESTIMATE_TEMPLATES;
 
@@ -40,24 +41,24 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 /** Appends every line of a template to the stage's estimate, with history. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const stageRef = await getStageWithProjectId(params.id);
-  if (!stageRef) return NextResponse.json({ error: "Этап не найден" }, { status: 404 });
+  if (!stageRef) return apiError("stageNotFound", 404);
 
   const membership = await getMembership(stageRef.projectId, user.id);
   if (!membership || membership.role === "CLIENT") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Некорректный шаблон" }, { status: 400 });
+    return apiError("invalidTemplate", 400);
   }
 
   const template = getTemplate(parsed.data.templateId);
-  if (!template) return NextResponse.json({ error: "Шаблон не найден" }, { status: 404 });
+  if (!template) return apiError("templateNotFound", 404);
 
   const created = await prisma.$transaction(async (tx) => {
     const rows = [];

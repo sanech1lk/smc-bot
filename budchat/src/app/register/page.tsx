@@ -8,6 +8,7 @@ import { UserPlus } from "lucide-react";
 import { ErrorNote, InfoNote, Logo } from "@/components/ui";
 import { AuthFooter } from "@/components/auth-footer";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 function RegisterForm() {
   const router = useRouter();
@@ -36,7 +37,7 @@ function RegisterForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? t("auth.register.errorGeneric"));
+        setError(apiErrorMessage(t, data, "auth.register.errorGeneric"));
         setLoading(false);
         return;
       }

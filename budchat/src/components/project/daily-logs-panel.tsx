@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { CloudSun, FileText, Plus, Trash2, Users, X } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { DailyLogSummary, ProjectRole } from "@/types/models";
 
@@ -142,7 +143,7 @@ function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () =
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("dailyLogs.errorSave"));
+      setError(apiErrorMessage(t, data, "dailyLogs.errorSave"));
       return;
     }
     onSaved();

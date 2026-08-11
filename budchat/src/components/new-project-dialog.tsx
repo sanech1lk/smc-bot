@@ -6,6 +6,7 @@ import { DEFAULT_STAGE_NAMES } from "@/lib/stages";
 import { CURRENCIES } from "@/lib/currency";
 import { ErrorNote } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 export function NewProjectDialog({
   open,
@@ -54,7 +55,7 @@ export function NewProjectDialog({
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error ?? t("projects.dialog.errorGeneric"));
+      setError(apiErrorMessage(t, data, "projects.dialog.errorGeneric"));
       return;
     }
 

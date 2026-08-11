@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MailCheck, Send } from "lucide-react";
 import { ErrorNote, Logo } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 export default function ForgotPasswordPage() {
   const { t } = useLocale();
@@ -27,7 +28,7 @@ export default function ForgotPasswordPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("auth.forgotPassword.errorGeneric"));
+      setError(apiErrorMessage(t, data, "auth.forgotPassword.errorGeneric"));
       return;
     }
 

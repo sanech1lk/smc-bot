@@ -14,9 +14,11 @@ export async function requireProjectRole(
   allowed: ProjectRole[]
 ) {
   const membership = await getMembership(projectId, userId);
-  if (!membership) return { ok: false as const, status: 403, message: "Вы не участник объекта" };
+  // Codes rather than sentences: the caller turns these into a response the
+  // client can show in its own language (see lib/api-error.ts).
+  if (!membership) return { ok: false as const, status: 403, code: "notProjectMember" as const };
   if (!allowed.includes(membership.role)) {
-    return { ok: false as const, status: 403, message: "Недостаточно прав" };
+    return { ok: false as const, status: 403, code: "insufficientRights" as const };
   }
   return { ok: true as const, membership };
 }

@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ClipboardCheck, Plus, Trash2, X } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type {
   ProjectMemberSummary,
@@ -74,7 +75,7 @@ export function PunchPanel({
       setItems((prev) => prev?.map((i) => (i.id === item.id ? data.item : i)) ?? null);
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? t("punch.errorAdvance"));
+      alert(apiErrorMessage(t, data, "punch.errorAdvance"));
     }
   }
 
@@ -234,7 +235,7 @@ function NewPunchForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("punch.errorCreate"));
+      setError(apiErrorMessage(t, data, "punch.errorCreate"));
       return;
     }
     onCreated();

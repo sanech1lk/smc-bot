@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Check, ChevronRight, Pencil, Plus, Trash2 } from "l
 import { StatusDot } from "@/components/status-dot";
 import { STAGE_STATUS_KEY, STAGE_STATUS_META } from "@/lib/stages";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import type { ProjectRole, StageSummary } from "@/types/models";
 
 export function StageList({
@@ -50,7 +51,7 @@ export function StageList({
     if (res.ok) onChange();
     else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? t("stageList.deleteError"));
+      alert(apiErrorMessage(t, data, "stageList.deleteError"));
     }
   }
 

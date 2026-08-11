@@ -7,6 +7,7 @@ import { SignaturePad } from "@/components/stage/signature-pad";
 import { Check, ListChecks, Plus, Trash2 } from "lucide-react";
 import { EmptyState, ErrorNote } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import type { ChecklistItemSummary, ProjectRole, SignatureSummary } from "@/types/models";
 
 export function ChecklistPanel({
@@ -111,7 +112,7 @@ export function ChecklistPanel({
     setSaving(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("checklist.errorSaveSignature"));
+      setError(apiErrorMessage(t, data, "checklist.errorSaveSignature"));
       return;
     }
     const data = await res.json();

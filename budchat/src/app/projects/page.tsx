@@ -6,6 +6,7 @@ import { TopBar } from "@/components/top-bar";
 import { ProjectCard } from "@/components/project-card";
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { DashboardSummary } from "@/components/dashboard-summary";
+import { EmailVerificationBanner } from "@/components/email-verification-banner";
 import { EmptyState, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
 import type { ProjectSummary } from "@/types/models";
@@ -49,6 +50,10 @@ export default function ProjectsPage() {
         <DashboardSummary />
       ) : (
         <div className="px-4 py-4">
+          <div className="mb-3 empty:mb-0">
+            <EmailVerificationBanner />
+          </div>
+
           {projects === null && <SkeletonList rows={3} height="h-40" />}
 
           {projects !== null && projects.length === 0 && (

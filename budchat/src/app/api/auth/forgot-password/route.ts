@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError, rateLimitedError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createToken, expiresInHours } from "@/lib/tokens";
@@ -15,16 +16,13 @@ export async function POST(req: Request) {
   const ip = clientIp(req);
   const limit = rateLimit(`forgot:${ip}`, 5, 15 * 60);
   if (!limit.ok) {
-    return NextResponse.json(
-      { error: "Слишком много попыток. Попробуйте позже." },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } }
-    );
+    return rateLimitedError("tooManyAttempts", limit.retryAfterSeconds);
   }
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   const email = parsed.data.email.toLowerCase().trim();

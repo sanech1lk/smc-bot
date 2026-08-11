@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { TaskStatus } from "@prisma/client";
@@ -9,7 +10,7 @@ import { TaskStatus } from "@prisma/client";
  */
 export async function GET() {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const memberships = await prisma.projectMember.findMany({
     where: { userId: user.id },

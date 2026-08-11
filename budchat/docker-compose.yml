@@ -30,8 +30,11 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://budchat:budchat@postgres:5432/budchat?schema=public
-      NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: change-me-to-a-random-32-byte-string
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      # Deliberately has no fallback: a placeholder secret here would sign
+      # real sessions. Generate one into .env — `openssl rand -base64 32` —
+      # and the startup guard in env-guard.js will refuse to boot without it.
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET не задан — сгенерируйте его в .env командой openssl rand -base64 32}
       NODE_ENV: production
       PORT: 3000
       # Push notifications are optional — generate your own with

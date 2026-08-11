@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { MailPlus, QrCode, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, ErrorNote, InfoNote } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import type { ProjectMemberSummary, ProjectRole } from "@/types/models";
 
 const ROLE_KEY: Record<ProjectRole, string> = {
@@ -74,7 +75,7 @@ export function MembersPanel({
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error ?? t("members.errorAdd"));
+      setError(apiErrorMessage(t, data, "members.errorAdd"));
       return;
     }
 
@@ -93,7 +94,7 @@ export function MembersPanel({
     if (res.ok) onChange();
     else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("members.errorRemove"));
+      setError(apiErrorMessage(t, data, "members.errorRemove"));
     }
   }
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { KeyRound } from "lucide-react";
 import { ErrorNote, Logo } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 
 function ResetForm() {
   const router = useRouter();
@@ -37,7 +38,7 @@ function ResetForm() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("auth.resetPassword.errorGeneric"));
+      setError(apiErrorMessage(t, data, "auth.resetPassword.errorGeneric"));
       return;
     }
 

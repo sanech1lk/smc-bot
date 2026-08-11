@@ -6,6 +6,7 @@ import { Clock, Play, Square, Trash2 } from "lucide-react";
 import { Avatar, EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { formatDuration, shiftMinutes } from "@/lib/field-ops";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { ProjectRole, ShiftSummary, StageSummary } from "@/types/models";
 
@@ -85,7 +86,7 @@ export function ShiftsPanel({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("shifts.errorStart"));
+      setError(apiErrorMessage(t, data, "shifts.errorStart"));
       return;
     }
     load();
@@ -104,7 +105,7 @@ export function ShiftsPanel({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("shifts.errorEnd"));
+      setError(apiErrorMessage(t, data, "shifts.errorEnd"));
       return;
     }
     load();

@@ -7,6 +7,7 @@ import { useStageSocket } from "@/lib/use-stage-socket";
 import { formatAmount, getCurrency } from "@/lib/currency";
 import { EmptyState, ErrorNote, Skeleton, SkeletonList, SkeletonTable } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import type { EstimateHistoryEntry, EstimateItem, ProjectRole } from "@/types/models";
 
 const ACTION_KEY: Record<EstimateHistoryEntry["action"], string> = {
@@ -375,7 +376,7 @@ function NewEstimateForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("estimate.errorAdd"));
+      setError(apiErrorMessage(t, data, "estimate.errorAdd"));
       return;
     }
 

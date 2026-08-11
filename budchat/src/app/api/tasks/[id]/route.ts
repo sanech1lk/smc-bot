@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
@@ -17,26 +18,26 @@ const updateSchema = z.object({
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (!task) return NextResponse.json({ error: "Задача не найдена" }, { status: 404 });
+  if (!task) return apiError("taskNotFound", 404);
 
   const stage = await prisma.stage.findUnique({ where: { id: task.stageId }, select: { projectId: true, name: true } });
   const membership = await getMembership(stage!.projectId, user.id);
-  if (!membership) return NextResponse.json({ error: "Доступ запрещён" }, { status: 403 });
+  if (!membership) return apiError("forbidden", 403);
 
   const body = await req.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message }, { status: 400 });
+    return apiError("validationFailed", 400);
   }
 
   // Clients may only move a task's status (e.g. approve from "review"), not reassign or retitle it.
   if (membership.role === "CLIENT") {
     const allowedForClient = Object.keys(parsed.data).every((key) => key === "status");
     if (!allowedForClient) {
-      return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+      return apiError("insufficientRights", 403);
     }
   }
 
@@ -75,15 +76,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  if (!user) return apiError("unauthorized", 401);
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (!task) return NextResponse.json({ error: "Задача не найдена" }, { status: 404 });
+  if (!task) return apiError("taskNotFound", 404);
 
   const stage = await prisma.stage.findUnique({ where: { id: task.stageId }, select: { projectId: true } });
   const membership = await getMembership(stage!.projectId, user.id);
   if (!membership || membership.role === "CLIENT") {
-    return NextResponse.json({ error: "Недостаточно прав" }, { status: 403 });
+    return apiError("insufficientRights", 403);
   }
 
   await prisma.task.delete({ where: { id: params.id } });

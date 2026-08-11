@@ -7,6 +7,7 @@ import { SignaturePad } from "@/components/stage/signature-pad";
 import { formatAmount, getCurrency } from "@/lib/currency";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { ChangeOrderStatus, ChangeOrderSummary, ProjectRole, StageSummary } from "@/types/models";
 
@@ -70,7 +71,7 @@ export function ChangeOrdersPanel({
       load();
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? t("changeOrders.errorDecide"));
+      alert(apiErrorMessage(t, data, "changeOrders.errorDecide"));
     }
   }
 
@@ -80,7 +81,7 @@ export function ChangeOrdersPanel({
     if (res.ok) load();
     else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? t("changeOrders.errorDelete"));
+      alert(apiErrorMessage(t, data, "changeOrders.errorDelete"));
     }
   }
 
@@ -269,7 +270,7 @@ function NewChangeOrderForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("changeOrders.errorCreate"));
+      setError(apiErrorMessage(t, data, "changeOrders.errorCreate"));
       return;
     }
     onCreated();

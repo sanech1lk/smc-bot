@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { FileText, FolderOpen, Trash2, Upload } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { DocumentCategory, DocumentSummary, ProjectRole } from "@/types/models";
 
@@ -66,7 +67,7 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("documents.errorUpload"));
+      setError(apiErrorMessage(t, data, "documents.errorUpload"));
       return;
     }
     load();

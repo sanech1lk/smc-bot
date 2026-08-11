@@ -14,7 +14,8 @@ async function main() {
       email: "prorab@budchat.dev",
       name: "Игорь (прораб)",
       phone: "+7 900 000-00-01",
-      passwordHash
+      passwordHash,
+      emailVerifiedAt: new Date()
     }
   });
 
@@ -25,7 +26,8 @@ async function main() {
       email: "master@budchat.dev",
       name: "Дмитрий (мастер)",
       phone: "+7 900 000-00-02",
-      passwordHash
+      passwordHash,
+      emailVerifiedAt: new Date()
     }
   });
 
@@ -36,7 +38,8 @@ async function main() {
       email: "client@budchat.dev",
       name: "Анна (заказчик)",
       phone: "+7 900 000-00-03",
-      passwordHash
+      passwordHash,
+      emailVerifiedAt: new Date()
     }
   });
 

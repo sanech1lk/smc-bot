@@ -5,6 +5,7 @@ import { Package, Plus, Trash2, X } from "lucide-react";
 import { formatAmount, getCurrency } from "@/lib/currency";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { useLocale } from "@/components/locale-provider";
+import { apiErrorMessage } from "@/lib/i18n/api-error-message";
 import { materialOverrun, materialProgressPercent } from "@/lib/field-ops";
 import type { MaterialSummary, ProjectRole, StageSummary } from "@/types/models";
 
@@ -217,7 +218,7 @@ function NewMaterialForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? t("materials.errorCreate"));
+      setError(apiErrorMessage(t, data, "materials.errorCreate"));
       return;
     }
     onCreated();
