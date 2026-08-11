@@ -5,10 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { KeyRound } from "lucide-react";
 import { ErrorNote, Logo } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 
 function ResetForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useLocale();
   const token = params.get("token") ?? "";
 
   const [password, setPassword] = useState("");
@@ -21,7 +23,7 @@ function ResetForm() {
     setError(null);
 
     if (password !== confirm) {
-      setError("Пароли не совпадают");
+      setError(t("auth.resetPassword.errorMismatch"));
       return;
     }
 
@@ -35,7 +37,7 @@ function ResetForm() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось изменить пароль");
+      setError(data.error ?? t("auth.resetPassword.errorGeneric"));
       return;
     }
 
@@ -46,10 +48,10 @@ function ResetForm() {
     return (
       <div className="animate-in mx-auto w-full max-w-sm text-center">
         <Logo size={64} glow />
-        <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">Ссылка недействительна</h1>
-        <p className="mt-2 text-text-secondary">Запросите восстановление пароля заново.</p>
+        <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">{t("auth.resetPassword.invalidTitle")}</h1>
+        <p className="mt-2 text-text-secondary">{t("auth.resetPassword.invalidNote")}</p>
         <Link href="/forgot-password" className="btn-primary mt-6 w-full">
-          Запросить ссылку
+          {t("auth.resetPassword.requestLink")}
         </Link>
       </div>
     );
@@ -59,15 +61,15 @@ function ResetForm() {
     <div className="animate-in mx-auto w-full max-w-sm">
       <div className="mb-8 flex flex-col items-center text-center">
         <Logo size={64} glow />
-        <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">Новый пароль</h1>
-        <p className="mt-1 text-text-secondary">Придумайте пароль для входа</p>
+        <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">{t("auth.resetPassword.title")}</h1>
+        <p className="mt-1 text-text-secondary">{t("auth.resetPassword.subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
           className="input"
           type="password"
-          placeholder="Новый пароль (минимум 6 символов)"
+          placeholder={t("auth.resetPassword.newPasswordPlaceholder")}
           autoComplete="new-password"
           required
           minLength={6}
@@ -77,7 +79,7 @@ function ResetForm() {
         <input
           className="input"
           type="password"
-          placeholder="Повторите пароль"
+          placeholder={t("auth.resetPassword.confirmPasswordPlaceholder")}
           autoComplete="new-password"
           required
           value={confirm}
@@ -86,7 +88,7 @@ function ResetForm() {
         {error && <ErrorNote>{error}</ErrorNote>}
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           <KeyRound size={18} />
-          {loading ? "Сохраняем…" : "Сохранить пароль"}
+          {loading ? t("auth.resetPassword.submitting") : t("auth.resetPassword.submit")}
         </button>
       </form>
     </div>

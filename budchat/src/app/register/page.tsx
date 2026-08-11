@@ -7,10 +7,12 @@ import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { ErrorNote, InfoNote, Logo } from "@/components/ui";
 import { AuthFooter } from "@/components/auth-footer";
+import { useLocale } from "@/components/locale-provider";
 
 function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { t } = useLocale();
   const inviteToken = params.get("invite") ?? undefined;
 
   const [name, setName] = useState("");
@@ -34,7 +36,7 @@ function RegisterForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Не удалось зарегистрироваться");
+        setError(data.error ?? t("auth.register.errorGeneric"));
         setLoading(false);
         return;
       }
@@ -50,7 +52,7 @@ function RegisterForm() {
       router.push("/projects");
       router.refresh();
     } catch {
-      setError("Ошибка сети, попробуйте снова");
+      setError(t("auth.register.errorNetwork"));
       setLoading(false);
     }
   }
@@ -60,13 +62,13 @@ function RegisterForm() {
       <div className="animate-in mx-auto w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo size={64} glow />
-          <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">Регистрация</h1>
-          <p className="mt-1 text-text-secondary">Создайте аккаунт в BudChat</p>
+          <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">{t("auth.register.title")}</h1>
+          <p className="mt-1 text-text-secondary">{t("auth.register.subtitle")}</p>
         </div>
 
         {inviteToken && (
           <div className="mb-4">
-            <InfoNote>Вас пригласили на объект — он появится сразу после регистрации</InfoNote>
+            <InfoNote>{t("auth.register.inviteNote")}</InfoNote>
           </div>
         )}
 
@@ -74,7 +76,7 @@ function RegisterForm() {
           <input
             className="input"
             type="text"
-            placeholder="Имя"
+            placeholder={t("auth.register.namePlaceholder")}
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -82,7 +84,7 @@ function RegisterForm() {
           <input
             className="input"
             type="email"
-            placeholder="Email"
+            placeholder={t("auth.login.emailPlaceholder")}
             autoComplete="email"
             required
             value={email}
@@ -91,14 +93,14 @@ function RegisterForm() {
           <input
             className="input"
             type="tel"
-            placeholder="Телефон (необязательно)"
+            placeholder={t("auth.register.phonePlaceholder")}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
           <input
             className="input"
             type="password"
-            placeholder="Пароль (минимум 6 символов)"
+            placeholder={t("auth.register.passwordPlaceholder")}
             autoComplete="new-password"
             required
             minLength={6}
@@ -110,14 +112,14 @@ function RegisterForm() {
 
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             <UserPlus size={18} />
-            {loading ? "Создаём аккаунт…" : "Зарегистрироваться"}
+            {loading ? t("auth.register.submitting") : t("auth.register.submit")}
           </button>
         </form>
 
         <p className="mt-6 text-center text-text-secondary">
-          Уже есть аккаунт?{" "}
+          {t("auth.register.haveAccount")}{" "}
           <Link href="/login" className="font-semibold text-brand">
-            Войти
+            {t("auth.register.loginLink")}
           </Link>
         </p>
 

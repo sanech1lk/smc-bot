@@ -7,11 +7,13 @@ import { ProjectCard } from "@/components/project-card";
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { DashboardSummary } from "@/components/dashboard-summary";
 import { EmptyState, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { ProjectSummary } from "@/types/models";
 
 type View = "projects" | "dashboard";
 
 export default function ProjectsPage() {
+  const { t } = useLocale();
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [view, setView] = useState<View>("projects");
@@ -36,10 +38,10 @@ export default function ProjectsPage() {
 
       <div className="sticky top-[calc(4.25rem+env(safe-area-inset-top))] z-20 flex gap-2 border-b border-border bg-bg/85 px-4 py-2 backdrop-blur-md">
         <ViewTab active={view === "projects"} onClick={() => setView("projects")} icon={Building2}>
-          Объекты
+          {t("projects.tabsProjects")}
         </ViewTab>
         <ViewTab active={view === "dashboard"} onClick={() => setView("dashboard")} icon={LayoutGrid}>
-          Сводка
+          {t("projects.tabsDashboard")}
         </ViewTab>
       </div>
 
@@ -52,12 +54,12 @@ export default function ProjectsPage() {
           {projects !== null && projects.length === 0 && (
             <EmptyState
               icon={Building2}
-              title="Пока нет объектов"
-              description="Создайте первый объект стройки — этапы, чат и смета появятся автоматически."
+              title={t("projects.emptyTitle")}
+              description={t("projects.emptyDescription")}
               action={
                 <button onClick={() => setDialogOpen(true)} className="btn-primary">
                   <Plus size={18} />
-                  Создать объект
+                  {t("projects.emptyCta")}
                 </button>
               }
             />
@@ -77,7 +79,7 @@ export default function ProjectsPage() {
         <button
           onClick={() => setDialogOpen(true)}
           className="bottom-nav-safe fixed bottom-6 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-raised transition-transform active:scale-95"
-          aria-label="Новый объект"
+          aria-label={t("projects.newProjectLabel")}
         >
           <Plus size={26} strokeWidth={2.5} />
         </button>

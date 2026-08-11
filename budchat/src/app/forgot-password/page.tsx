@@ -4,8 +4,10 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { MailCheck, Send } from "lucide-react";
 import { ErrorNote, Logo } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 
 export default function ForgotPasswordPage() {
+  const { t } = useLocale();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function ForgotPasswordPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось отправить письмо");
+      setError(data.error ?? t("auth.forgotPassword.errorGeneric"));
       return;
     }
 
@@ -37,21 +39,19 @@ export default function ForgotPasswordPage() {
       <div className="animate-in mx-auto w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <Logo size={64} glow />
-          <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">Восстановление пароля</h1>
+          <h1 className="mt-5 text-[1.75rem] font-bold tracking-tight">{t("auth.forgotPassword.title")}</h1>
           <p className="mt-1 text-text-secondary">
-            {sent ? "Проверьте почту" : "Введите email от вашего аккаунта"}
+            {sent ? t("auth.forgotPassword.subtitleAfter") : t("auth.forgotPassword.subtitleBefore")}
           </p>
         </div>
 
         {sent ? (
           <div className="card flex flex-col items-center text-center">
             <MailCheck size={40} className="mb-3 text-status-green" strokeWidth={1.75} />
-            <p className="font-semibold">Если аккаунт существует, письмо отправлено</p>
-            <p className="mt-1.5 text-sm text-text-secondary">
-              Ссылка действует 1 час. Не пришло — проверьте папку «Спам».
-            </p>
+            <p className="font-semibold">{t("auth.forgotPassword.sentTitle")}</p>
+            <p className="mt-1.5 text-sm text-text-secondary">{t("auth.forgotPassword.sentNote")}</p>
             <Link href="/login" className="btn-secondary mt-5 w-full">
-              Вернуться ко входу
+              {t("auth.forgotPassword.backToLogin")}
             </Link>
           </div>
         ) : (
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
             <input
               className="input"
               type="email"
-              placeholder="Email"
+              placeholder={t("auth.login.emailPlaceholder")}
               autoComplete="email"
               required
               value={email}
@@ -68,10 +68,10 @@ export default function ForgotPasswordPage() {
             {error && <ErrorNote>{error}</ErrorNote>}
             <button type="submit" className="btn-primary w-full" disabled={loading}>
               <Send size={18} />
-              {loading ? "Отправляем…" : "Отправить ссылку"}
+              {loading ? t("auth.forgotPassword.submitting") : t("auth.forgotPassword.submit")}
             </button>
             <Link href="/login" className="btn-ghost w-full">
-              Отмена
+              {t("common.cancel")}
             </Link>
           </form>
         )}

@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { DEFAULT_STAGE_NAMES } from "@/lib/stages";
 import { CURRENCIES } from "@/lib/currency";
 import { ErrorNote } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 
 export function NewProjectDialog({
   open,
@@ -15,6 +16,7 @@ export function NewProjectDialog({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const { t } = useLocale();
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [currency, setCurrency] = useState("RUB");
@@ -38,7 +40,7 @@ export function NewProjectDialog({
     setError(null);
 
     if (stageNames.length === 0) {
-      setError("Нужен хотя бы один этап");
+      setError(t("projects.dialog.errorNoStages"));
       return;
     }
 
@@ -52,7 +54,7 @@ export function NewProjectDialog({
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error ?? "Не удалось создать объект");
+      setError(data.error ?? t("projects.dialog.errorGeneric"));
       return;
     }
 
@@ -73,11 +75,11 @@ export function NewProjectDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Новый объект</h2>
+          <h2 className="text-xl font-bold">{t("projects.dialog.title")}</h2>
           <button
             onClick={onClose}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted hover:text-text-primary"
-            aria-label="Закрыть"
+            aria-label={t("projects.dialog.close")}
           >
             <X size={20} />
           </button>
@@ -86,7 +88,7 @@ export function NewProjectDialog({
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             className="input"
-            placeholder="Название объекта"
+            placeholder={t("projects.dialog.namePlaceholder")}
             required
             autoFocus
             value={name}
@@ -94,14 +96,14 @@ export function NewProjectDialog({
           />
           <input
             className="input"
-            placeholder="Адрес"
+            placeholder={t("projects.dialog.addressPlaceholder")}
             required
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
 
           <div>
-            <label className="label mb-1.5 block">Валюта сметы</label>
+            <label className="label mb-1.5 block">{t("projects.dialog.currencyLabel")}</label>
             <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -117,7 +119,7 @@ export function NewProjectDialog({
             className="flex w-full items-center justify-between rounded-xl border border-border bg-bg-elevated px-4 py-3 text-left transition-colors"
           >
             <span>
-              Этапы: <span className="font-semibold">{stageNames.length}</span>
+              {t("projects.dialog.stagesPrefix")} <span className="font-semibold">{stageNames.length}</span>
             </span>
             {stagesOpen ? (
               <ChevronUp size={18} className="text-text-muted" />
@@ -128,9 +130,7 @@ export function NewProjectDialog({
 
           {stagesOpen && (
             <div className="animate-in space-y-2 rounded-xl border border-border bg-bg-soft p-3">
-              <p className="text-sm text-text-secondary">
-                Список по умолчанию подходит для ремонта квартиры — уберите лишние или добавьте свои.
-              </p>
+              <p className="text-sm text-text-secondary">{t("projects.dialog.stagesHint")}</p>
               {stageNames.map((stageName, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated text-xs font-semibold text-text-secondary">
@@ -141,7 +141,7 @@ export function NewProjectDialog({
                     type="button"
                     onClick={() => setStageNames((prev) => prev.filter((_, i) => i !== index))}
                     className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-status-red active:bg-status-red/10"
-                    aria-label={`Убрать этап ${stageName}`}
+                    aria-label={`${t("projects.dialog.removeStagePrefix")} ${stageName}`}
                   >
                     <X size={16} />
                   </button>
@@ -150,7 +150,7 @@ export function NewProjectDialog({
               <div className="flex gap-2 pt-1">
                 <input
                   className="input py-2 text-sm"
-                  placeholder="Новый этап"
+                  placeholder={t("projects.dialog.newStagePlaceholder")}
                   value={newStage}
                   onChange={(e) => setNewStage(e.target.value)}
                   onKeyDown={(e) => {
@@ -171,10 +171,10 @@ export function NewProjectDialog({
 
           <div className="flex gap-3 pt-1">
             <button type="button" className="btn-secondary flex-1" onClick={onClose}>
-              Отмена
+              {t("common.cancel")}
             </button>
             <button type="submit" className="btn-primary flex-1" disabled={loading}>
-              {loading ? "Создаём…" : "Создать"}
+              {loading ? t("projects.dialog.submitting") : t("projects.dialog.submit")}
             </button>
           </div>
         </form>
