@@ -31,8 +31,8 @@ export function Switch({
       }`}
     >
       <span
-        className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-card transition-transform duration-200 ${
-          checked ? "translate-x-7" : "translate-x-1"
+        className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow-card transition-transform duration-200 ${
+          checked ? "translate-x-6" : "translate-x-0"
         }`}
       />
     </button>
