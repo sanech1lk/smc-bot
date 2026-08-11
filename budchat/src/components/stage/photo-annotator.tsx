@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, Eraser, Undo2, X } from "lucide-react";
 import { drawStrokes, parseAnnotations, type Stroke } from "@/lib/annotations";
+import { useLocale } from "@/components/locale-provider";
 
 const COLORS = ["#ef4444", "#eab308", "#22c55e", "#3b82f6", "#ffffff"];
 
@@ -22,6 +23,7 @@ export function PhotoAnnotator({
   onCancel: () => void;
   onSave: (serialised: string | null) => Promise<void> | void;
 }) {
+  const { t } = useLocale();
   const [strokes, setStrokes] = useState<Stroke[]>(() => parseAnnotations(initial));
   const [color, setColor] = useState(COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -89,16 +91,16 @@ export function PhotoAnnotator({
         <button
           onClick={onCancel}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white"
-          aria-label="Отмена"
+          aria-label={t("photoAnnotator.cancelAria")}
         >
           <X size={20} />
         </button>
-        <p className="font-semibold text-white">Разметка фото</p>
+        <p className="font-semibold text-white">{t("photoAnnotator.title")}</p>
         <button
           onClick={handleSave}
           disabled={saving}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-white disabled:opacity-50"
-          aria-label="Сохранить разметку"
+          aria-label={t("photoAnnotator.saveAria")}
         >
           <Check size={20} />
         </button>
@@ -128,14 +130,14 @@ export function PhotoAnnotator({
               color === c ? "scale-110 border-white" : "border-white/30"
             }`}
             style={{ backgroundColor: c }}
-            aria-label={`Цвет ${c}`}
+            aria-label={t("photoAnnotator.colorAria", { color: c })}
           />
         ))}
         <button
           onClick={() => setStrokes((prev) => prev.slice(0, -1))}
           disabled={strokes.length === 0}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-40"
-          aria-label="Отменить последний штрих"
+          aria-label={t("photoAnnotator.undoAria")}
         >
           <Undo2 size={19} />
         </button>
@@ -143,7 +145,7 @@ export function PhotoAnnotator({
           onClick={() => setStrokes([])}
           disabled={strokes.length === 0}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-40"
-          aria-label="Очистить разметку"
+          aria-label={t("photoAnnotator.clearAria")}
         >
           <Eraser size={19} />
         </button>

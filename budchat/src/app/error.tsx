@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import { useLocale } from "@/components/locale-provider";
 
 /**
  * Recoverable crash inside a page: the theme and navigation still work, so the
@@ -17,6 +18,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { t } = useLocale();
+
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
@@ -26,22 +29,20 @@ export default function Error({
       <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-status-red/15 text-status-red">
         <AlertTriangle size={30} />
       </span>
-      <h1 className="mt-5 text-xl font-bold">Что-то пошло не так</h1>
-      <p className="mt-2 max-w-sm text-text-secondary">
-        Ошибка уже отправлена нам. Попробуйте ещё раз — введённые данные никуда не делись.
-      </p>
+      <h1 className="mt-5 text-xl font-bold">{t("errorPage.title")}</h1>
+      <p className="mt-2 max-w-sm text-text-secondary">{t("errorPage.description")}</p>
       {error.digest && (
         <p className="mt-3 text-xs text-text-muted">
-          Код ошибки: <span className="tabular">{error.digest}</span>
+          {t("errorPage.errorCodeLabel")} <span className="tabular">{error.digest}</span>
         </p>
       )}
       <div className="mt-7 flex w-full max-w-xs flex-col gap-3">
         <button onClick={reset} className="btn-primary w-full">
           <RotateCcw size={18} />
-          Попробовать снова
+          {t("errorPage.retry")}
         </button>
         <Link href="/projects" className="btn-secondary w-full">
-          К списку объектов
+          {t("common.backToProjects")}
         </Link>
       </div>
     </main>

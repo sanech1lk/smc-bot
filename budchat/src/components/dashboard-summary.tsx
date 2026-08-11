@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
 import {
   AlertTriangle,
   CalendarClock,
@@ -14,6 +13,8 @@ import {
   Truck
 } from "lucide-react";
 import { EmptyState, Skeleton, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 
 interface StageRef {
   id: string;
@@ -51,6 +52,7 @@ interface DashboardData {
 }
 
 export function DashboardSummary() {
+  const { t, locale } = useLocale();
   const [data, setData] = useState<DashboardData | null>(null);
 
   useEffect(() => {
@@ -80,32 +82,32 @@ export function DashboardSummary() {
   return (
     <div className="animate-in space-y-5 px-4 py-4">
       <div className="grid grid-cols-2 gap-3">
-        <StatTile icon={Hammer} label="Этапов в работе" value={stats.activeStages} tone="accent" />
+        <StatTile icon={Hammer} label={t("dashboard.tileActiveStages")} value={stats.activeStages} tone="accent" />
         <StatTile
           icon={AlertTriangle}
-          label="Проблемных этапов"
+          label={t("dashboard.tileProblemStages")}
           value={stats.problemStages}
           tone={stats.problemStages > 0 ? "red" : "muted"}
         />
         <StatTile
           icon={Clock}
-          label="Просрочено задач"
+          label={t("dashboard.tileOverdueTasks")}
           value={stats.overdueTasks}
           tone={stats.overdueTasks > 0 ? "yellow" : "muted"}
         />
-        <StatTile icon={ClipboardList} label="Мои задачи" value={stats.myOpenTasks} tone="muted" />
+        <StatTile icon={ClipboardList} label={t("dashboard.tileMyTasks")} value={stats.myOpenTasks} tone="muted" />
       </div>
 
       {allClear && (
         <EmptyState
           icon={CheckCircle2}
-          title="Всё под контролем"
-          description="Нет проблемных этапов, просроченных и назначенных на вас задач."
+          title={t("dashboard.allClearTitle")}
+          description={t("dashboard.allClearDescription")}
         />
       )}
 
       {data.problemStages.length > 0 && (
-        <Section title="Требуют внимания" icon={AlertTriangle} tone="text-status-red">
+        <Section title={t("dashboard.needsAttention")} icon={AlertTriangle} tone="text-status-red">
           {data.problemStages.map((stage) => (
             <Link
               key={stage.id}
@@ -123,7 +125,7 @@ export function DashboardSummary() {
       )}
 
       {data.overdueTasks.length > 0 && (
-        <Section title="Просроченные задачи" icon={Clock} tone="text-status-yellow">
+        <Section title={t("dashboard.overdueTasks")} icon={Clock} tone="text-status-yellow">
           {data.overdueTasks.map((task) => (
             <Link
               key={task.id}
@@ -137,7 +139,8 @@ export function DashboardSummary() {
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                 {task.deadline && (
                   <span className="text-status-red">
-                    до {format(new Date(task.deadline), "d MMM", { locale: ru })}
+                    {t("dashboard.deadlinePrefix")}{" "}
+                    {format(new Date(task.deadline), "d MMM", { locale: dateFnsLocale(locale) })}
                   </span>
                 )}
                 {task.assignee && <span className="text-text-muted">{task.assignee.name}</span>}
@@ -148,7 +151,7 @@ export function DashboardSummary() {
       )}
 
       {data.myTasks.length > 0 && (
-        <Section title="Назначено на меня" icon={ClipboardList} tone="text-accent">
+        <Section title={t("dashboard.assignedToMe")} icon={ClipboardList} tone="text-accent">
           {data.myTasks.map((task) => (
             <Link
               key={task.id}
@@ -161,7 +164,8 @@ export function DashboardSummary() {
               </p>
               {task.deadline && (
                 <p className="mt-1 text-sm text-text-muted">
-                  до {format(new Date(task.deadline), "d MMMM", { locale: ru })}
+                  {t("dashboard.deadlinePrefix")}{" "}
+                  {format(new Date(task.deadline), "d MMMM", { locale: dateFnsLocale(locale) })}
                 </p>
               )}
             </Link>
@@ -170,7 +174,7 @@ export function DashboardSummary() {
       )}
 
       {data.upcomingVisits.length > 0 && (
-        <Section title="Ближайшие выезды" icon={CalendarClock} tone="text-text-secondary">
+        <Section title={t("dashboard.upcomingVisits")} icon={CalendarClock} tone="text-text-secondary">
           {data.upcomingVisits.map((visit) => (
             <Link
               key={visit.id}
@@ -179,14 +183,14 @@ export function DashboardSummary() {
             >
               <Truck size={20} className="mt-0.5 flex-shrink-0 text-text-muted" />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{visit.crewName || "Бригада"}</p>
+                <p className="truncate font-semibold">{visit.crewName || t("dashboard.crewFallback")}</p>
                 <p className="truncate text-sm text-text-secondary">
                   {visit.project.name}
                   {visit.stage ? ` · ${visit.stage.name}` : ""}
                 </p>
               </div>
               <span className="flex-shrink-0 text-sm text-text-muted">
-                {format(new Date(visit.date), "d MMM, HH:mm", { locale: ru })}
+                {format(new Date(visit.date), "d MMM, HH:mm", { locale: dateFnsLocale(locale) })}
               </span>
             </Link>
           ))}

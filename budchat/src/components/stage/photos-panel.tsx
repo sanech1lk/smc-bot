@@ -9,13 +9,14 @@ import { useOutboxFlush } from "@/lib/use-outbox-flush";
 import { Camera, Clock3, ImageIcon, MapPin, PenLine } from "lucide-react";
 import { AnnotationOverlay, PhotoAnnotator } from "@/components/stage/photo-annotator";
 import { EmptyState, SkeletonGrid } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { PhotoSummary, PhotoTag } from "@/types/models";
 
-const TAG_LABEL: Record<PhotoTag, string> = {
-  BEFORE: "До",
-  AFTER: "После",
-  PROBLEM: "Проблема",
-  CHECKED: "Проверено"
+const TAG_KEY: Record<PhotoTag, string> = {
+  BEFORE: "photoTag.before",
+  AFTER: "photoTag.after",
+  PROBLEM: "photoTag.problem",
+  CHECKED: "photoTag.checked"
 };
 
 const TAG_COLOR: Record<PhotoTag, string> = {
@@ -32,6 +33,7 @@ interface PendingPhoto {
 }
 
 export function PhotosPanel({ stageId }: { stageId: string }) {
+  const { t } = useLocale();
   const [photos, setPhotos] = useState<PhotoSummary[]>([]);
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([]);
   const [filter, setFilter] = useState<PhotoTag | "ALL">("ALL");
@@ -120,7 +122,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
         // tamper-evident site proof even if it's later shared outside the app.
         stamped = await stampPhoto(file);
       } catch {
-        alert("Не удалось обработать фото на этом устройстве");
+        alert(t("photos.errorProcessFailed"));
         return;
       }
 
@@ -146,12 +148,12 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
           await queueOffline(stamped);
         } else {
           const data = await res.json().catch(() => ({}));
-          alert(data.error ?? "Не удалось загрузить фото");
+          alert(data.error ?? t("photos.errorUploadFailed"));
         }
       } catch {
         // fetch threw — connection dropped mid-request. Queue it for later.
         await queueOffline(stamped);
-        alert("Нет соединения — фото сохранено и загрузится, когда появится интернет");
+        alert(t("photos.offlineQueuedNote"));
       }
     } finally {
       setUploading(false);
@@ -193,16 +195,16 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
   return (
     <div className="px-4 py-4 pb-24 lg:pb-6">
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-        <FilterChip label="Все" active={filter === "ALL"} onClick={() => setFilter("ALL")} />
-        {(Object.keys(TAG_LABEL) as PhotoTag[]).map((tag) => (
-          <FilterChip key={tag} label={TAG_LABEL[tag]} active={filter === tag} onClick={() => setFilter(tag)} />
+        <FilterChip label={t("photos.filterAll")} active={filter === "ALL"} onClick={() => setFilter("ALL")} />
+        {(Object.keys(TAG_KEY) as PhotoTag[]).map((tag) => (
+          <FilterChip key={tag} label={t(TAG_KEY[tag])} active={filter === tag} onClick={() => setFilter(tag)} />
         ))}
       </div>
 
       <div className="mb-4 card space-y-3">
-        <p className="font-semibold">Загрузить фото</p>
+        <p className="font-semibold">{t("photos.uploadTitle")}</p>
         <div className="flex gap-2 overflow-x-auto">
-          {(Object.keys(TAG_LABEL) as PhotoTag[]).map((tag) => (
+          {(Object.keys(TAG_KEY) as PhotoTag[]).map((tag) => (
             <button
               key={tag}
               onClick={() => setUploadTag(tag)}
@@ -210,7 +212,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
                 uploadTag === tag ? "bg-brand text-white" : "bg-bg-elevated text-text-secondary"
               }`}
             >
-              {TAG_LABEL[tag]}
+              {t(TAG_KEY[tag])}
             </button>
           ))}
         </div>
@@ -225,27 +227,23 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
         />
         <label htmlFor="photo-input" className="btn-primary w-full cursor-pointer">
           <Camera size={18} />
-          {uploading ? "Загружаем…" : "Сделать / выбрать фото"}
+          {uploading ? t("photos.uploading") : t("photos.uploadCta")}
         </label>
       </div>
 
       {loading && <SkeletonGrid />}
       {!loading && visiblePhotos.length === 0 && visiblePending.length === 0 && (
-        <EmptyState
-          icon={ImageIcon}
-          title="Нет фото с этим тегом"
-          description="Снимки автоматически получают дату и координаты — их можно использовать как доказательство работ."
-        />
+        <EmptyState icon={ImageIcon} title={t("photos.emptyTitle")} description={t("photos.emptyDescription")} />
       )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {visiblePending.map((photo) => (
           <div key={photo.id} className="relative aspect-square overflow-hidden rounded-xl bg-bg-card opacity-60">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.blobUrl} alt="Ожидает отправки" className="h-full w-full object-cover" />
+            <img src={photo.blobUrl} alt={t("photos.pendingAlt")} className="h-full w-full object-cover" />
             <span className="chip absolute left-1.5 top-1.5 gap-1 bg-black/65 py-0.5 text-xs text-white">
               <Clock3 size={11} />
-              ждёт сети
+              {t("photos.pendingBadge")}
             </span>
           </div>
         ))}
@@ -255,10 +253,16 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
             onClick={() => setPreview(photo)}
             className="relative aspect-square overflow-hidden rounded-xl bg-bg-card"
           >
-            <Image src={photo.url} alt={photo.description ?? "Фото"} fill className="object-cover" sizes="200px" />
+            <Image
+              src={photo.url}
+              alt={photo.description ?? t("photos.photoAlt")}
+              fill
+              className="object-cover"
+              sizes="200px"
+            />
             <AnnotationOverlay annotations={photo.annotations} />
             <span className={`absolute left-1.5 top-1.5 chip py-0.5 text-xs ${TAG_COLOR[photo.tag]}`}>
-              {TAG_LABEL[photo.tag]}
+              {t(TAG_KEY[photo.tag])}
             </span>
           </button>
         ))}
@@ -279,13 +283,15 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
           onClick={() => setPreview(null)}
         >
           <div className="relative mx-auto my-auto h-[70vh] w-full max-w-lg">
-            <Image src={preview.url} alt={preview.description ?? "Фото"} fill className="object-contain" />
+            <Image src={preview.url} alt={preview.description ?? t("photos.photoAlt")} fill className="object-contain" />
             <AnnotationOverlay annotations={preview.annotations} />
           </div>
           <div className="mx-auto w-full max-w-lg text-center text-white">
-            <span className={`chip ${TAG_COLOR[preview.tag]}`}>{TAG_LABEL[preview.tag]}</span>
+            <span className={`chip ${TAG_COLOR[preview.tag]}`}>{t(TAG_KEY[preview.tag])}</span>
             {preview.description && <p className="mt-2">{preview.description}</p>}
-            <p className="mt-1 text-sm text-white/60">Загрузил: {preview.uploadedBy.name}</p>
+            <p className="mt-1 text-sm text-white/60">
+              {t("photos.uploadedByPrefix")} {preview.uploadedBy.name}
+            </p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -294,7 +300,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
               className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
             >
               <PenLine size={16} />
-              {preview.annotations ? "Изменить разметку" : "Разметить фото"}
+              {preview.annotations ? t("photos.editAnnotations") : t("photos.addAnnotations")}
             </button>
             {preview.lat != null && preview.lng != null && (
               <a
@@ -305,7 +311,7 @@ export function PhotosPanel({ stageId }: { stageId: string }) {
                 className="mt-2 inline-flex items-center gap-1.5 text-sm text-brand-light underline"
               >
                 <MapPin size={14} />
-                Открыть место на карте
+                {t("photos.openMap")}
               </a>
             )}
           </div>

@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
 import { ClipboardCheck, Plus, Trash2, X } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type {
   ProjectMemberSummary,
   ProjectRole,
@@ -14,11 +15,11 @@ import type {
   StageSummary
 } from "@/types/models";
 
-const STATUS_LABEL: Record<PunchStatus, string> = {
-  OPEN: "Открыт",
-  IN_PROGRESS: "В работе",
-  FIXED: "Устранён",
-  VERIFIED: "Принят"
+const STATUS_KEY: Record<PunchStatus, string> = {
+  OPEN: "punchStatus.open",
+  IN_PROGRESS: "punchStatus.inProgress",
+  FIXED: "punchStatus.fixed",
+  VERIFIED: "punchStatus.verified"
 };
 
 const STATUS_CHIP: Record<PunchStatus, string> = {
@@ -46,6 +47,7 @@ export function PunchPanel({
   members: ProjectMemberSummary[];
   myRole: ProjectRole;
 }) {
+  const { t, locale } = useLocale();
   const [items, setItems] = useState<PunchItemSummary[] | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [showDone, setShowDone] = useState(false);
@@ -72,12 +74,12 @@ export function PunchPanel({
       setItems((prev) => prev?.map((i) => (i.id === item.id ? data.item : i)) ?? null);
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Не удалось обновить статус");
+      alert(data.error ?? t("punch.errorAdvance"));
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Удалить дефект?")) return;
+    if (!confirm(t("punch.deleteConfirm"))) return;
     const res = await fetch(`/api/punch/${id}`, { method: "DELETE" });
     if (res.ok) setItems((prev) => prev?.filter((i) => i.id !== id) ?? null);
   }
@@ -97,7 +99,7 @@ export function PunchPanel({
             !showDone ? "bg-brand text-white" : "bg-bg-card text-text-secondary"
           }`}
         >
-          Открытые ({open.length})
+          {t("punch.tabOpen", { count: open.length })}
         </button>
         <button
           onClick={() => setShowDone(true)}
@@ -105,13 +107,13 @@ export function PunchPanel({
             showDone ? "bg-brand text-white" : "bg-bg-card text-text-secondary"
           }`}
         >
-          Принятые ({verified.length})
+          {t("punch.tabVerified", { count: verified.length })}
         </button>
       </div>
 
       <button className="btn-secondary w-full" onClick={() => setFormOpen((v) => !v)}>
         {formOpen ? <X size={17} /> : <Plus size={17} />}
-        {formOpen ? "Отмена" : "Добавить дефект"}
+        {formOpen ? t("common.cancel") : t("punch.addCta")}
       </button>
 
       {formOpen && (
@@ -130,10 +132,8 @@ export function PunchPanel({
       {visible.length === 0 ? (
         <EmptyState
           icon={ClipboardCheck}
-          title={showDone ? "Принятых дефектов нет" : "Дефектов нет"}
-          description={
-            showDone ? undefined : "Отмечайте недоделки при приёмке — с фото, исполнителем и сроком."
-          }
+          title={showDone ? t("punch.emptyTitleVerified") : t("punch.emptyTitleOpen")}
+          description={showDone ? undefined : t("punch.emptyDescription")}
         />
       ) : (
         <div className="space-y-2">
@@ -149,7 +149,7 @@ export function PunchPanel({
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-semibold">{item.title}</p>
                     <span className={`chip flex-shrink-0 py-1 text-xs ${STATUS_CHIP[item.status]}`}>
-                      {STATUS_LABEL[item.status]}
+                      {t(STATUS_KEY[item.status])}
                     </span>
                   </div>
                   {item.description && (
@@ -159,7 +159,10 @@ export function PunchPanel({
                     {item.stage && <span>{item.stage.name}</span>}
                     {item.assignee && <span>{item.assignee.name}</span>}
                     {item.dueDate && (
-                      <span>до {format(new Date(item.dueDate), "d MMM", { locale: ru })}</span>
+                      <span>
+                        {t("punch.dueDatePrefix")}{" "}
+                        {format(new Date(item.dueDate), "d MMM", { locale: dateFnsLocale(locale) })}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -169,15 +172,15 @@ export function PunchPanel({
                 {NEXT_STATUS[item.status] && (
                   <button className="btn-secondary flex-1 py-2 text-sm" onClick={() => advance(item)}>
                     {item.status === "FIXED"
-                      ? "Принять устранение"
-                      : `→ ${STATUS_LABEL[NEXT_STATUS[item.status]!]}`}
+                      ? t("punch.acceptFix")
+                      : `→ ${t(STATUS_KEY[NEXT_STATUS[item.status]!])}`}
                   </button>
                 )}
                 {myRole !== "CLIENT" && (
                   <button
                     onClick={() => remove(item.id)}
                     className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-text-muted hover:text-status-red"
-                    aria-label="Удалить дефект"
+                    aria-label={t("punch.deleteAria")}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -202,6 +205,7 @@ function NewPunchForm({
   members: ProjectMemberSummary[];
   onCreated: () => void;
 }) {
+  const { t } = useLocale();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [stageId, setStageId] = useState("");
@@ -230,7 +234,7 @@ function NewPunchForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось добавить дефект");
+      setError(data.error ?? t("punch.errorCreate"));
       return;
     }
     onCreated();
@@ -240,7 +244,7 @@ function NewPunchForm({
     <form onSubmit={handleSubmit} className="animate-in card space-y-3">
       <input
         className="input"
-        placeholder="Что не так (например «Скол на плитке у двери»)"
+        placeholder={t("punch.titlePlaceholder")}
         required
         value={title}
         onChange={(e) => setTitle(e.target.value)}
@@ -248,12 +252,12 @@ function NewPunchForm({
       <textarea
         className="input"
         rows={2}
-        placeholder="Подробности (необязательно)"
+        placeholder={t("punch.descriptionPlaceholder")}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
       <select className="input" value={stageId} onChange={(e) => setStageId(e.target.value)}>
-        <option value="">Без этапа</option>
+        <option value="">{t("punch.noStage")}</option>
         {stages.map((s) => (
           <option key={s.id} value={s.id}>
             {s.name}
@@ -262,7 +266,7 @@ function NewPunchForm({
       </select>
       <div className="grid grid-cols-2 gap-2">
         <select className="input" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
-          <option value="">Без исполнителя</option>
+          <option value="">{t("punch.noAssignee")}</option>
           {members.map((m) => (
             <option key={m.userId} value={m.userId}>
               {m.user?.name}
@@ -273,7 +277,7 @@ function NewPunchForm({
       </div>
       {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Добавляем…" : "Добавить дефект"}
+        {loading ? t("punch.submitCreating") : t("punch.submit")}
       </button>
     </form>
   );

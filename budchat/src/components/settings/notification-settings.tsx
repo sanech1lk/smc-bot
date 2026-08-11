@@ -14,9 +14,18 @@ import {
 } from "lucide-react";
 import { SettingRow, SettingSection, Switch } from "@/components/ui";
 import { useSettings } from "@/components/settings-provider";
+import { useLocale } from "@/components/locale-provider";
 import { formatMinuteOfDay, SOUND_OPTIONS } from "@/lib/settings";
 import { isVibrationSupported, playSound, unlockAudio, vibrate } from "@/lib/sounds";
 import { SoundPickerSheet } from "@/components/settings/sound-picker-sheet";
+
+const SOUND_LABEL_KEY: Record<string, string> = {
+  ping: "sound.pingLabel",
+  knock: "sound.knockLabel",
+  chirp: "sound.chirpLabel",
+  bell: "sound.bellLabel",
+  none: "sound.noneLabel"
+};
 
 function minutesToTimeInput(minutes: number): string {
   return formatMinuteOfDay(minutes);
@@ -29,6 +38,7 @@ function timeInputToMinutes(value: string): number | null {
 }
 
 export function NotificationSettings() {
+  const { t } = useLocale();
   const { settings, update } = useSettings();
   const [soundSheetOpen, setSoundSheetOpen] = useState(false);
   const currentSound = SOUND_OPTIONS.find((s) => s.id === settings.soundName);
@@ -42,11 +52,11 @@ export function NotificationSettings() {
 
   return (
     <>
-      <SettingSection title="Звук и вибрация">
+      <SettingSection title={t("notificationSettings.soundSectionTitle")}>
         <SettingRow
           icon={Volume2}
-          title="Звук сообщения"
-          description={currentSound?.label ?? "Пинг"}
+          title={t("notificationSettings.messageSoundTitle")}
+          description={currentSound ? t(SOUND_LABEL_KEY[currentSound.id]) : t("sound.pingLabel")}
           control={<span className="text-sm text-text-muted">→</span>}
           onClick={() => {
             unlockAudio();
@@ -58,7 +68,7 @@ export function NotificationSettings() {
           <div className="py-3">
             <div className="mb-1.5 flex items-center justify-between">
               <label htmlFor="sound-volume" className="text-sm text-text-secondary">
-                Громкость
+                {t("notificationSettings.volumeLabel")}
               </label>
               <span className="text-sm tabular text-text-muted">{settings.soundVolume}%</span>
             </div>
@@ -75,19 +85,19 @@ export function NotificationSettings() {
                 playSound(settings.soundName, settings.soundVolume);
               }}
               className="w-full accent-[rgb(var(--brand))]"
-              aria-label="Громкость звука сообщений"
+              aria-label={t("notificationSettings.volumeAria")}
             />
           </div>
         )}
 
         <SettingRow
           icon={Bell}
-          title="Включён"
-          description="Звук на входящие сообщения"
+          title={t("notificationSettings.enabledTitle")}
+          description={t("notificationSettings.enabledDescription")}
           control={
             <Switch
               checked={settings.soundEnabled}
-              label="Звук на входящие сообщения"
+              label={t("notificationSettings.enabledDescription")}
               onChange={(next) => update({ soundEnabled: next })}
             />
           }
@@ -96,11 +106,11 @@ export function NotificationSettings() {
         {vibrationSupported && (
           <SettingRow
             icon={Smartphone}
-            title="Вибрация"
+            title={t("notificationSettings.vibrationTitle")}
             control={
               <Switch
                 checked={settings.vibrationEnabled}
-                label="Вибрация на входящие сообщения"
+                label={t("notificationSettings.vibrationSwitchLabel")}
                 onChange={(next) => {
                   if (next) vibrate(40);
                   update({ vibrationEnabled: next });
@@ -111,43 +121,43 @@ export function NotificationSettings() {
         )}
 
         <SettingRow
-          title="Звук в открытом чате"
-          description="Оповещать, даже если чат уже открыт на экране"
+          title={t("notificationSettings.openChatTitle")}
+          description={t("notificationSettings.openChatDescription")}
           control={
             <Switch
               checked={settings.soundInOpenChat}
-              label="Звук в открытом чате"
+              label={t("notificationSettings.openChatTitle")}
               onChange={(next) => update({ soundInOpenChat: next })}
             />
           }
         />
 
         <SettingRow
-          title="Звук отправки"
-          description="Короткий щелчок, когда ваше сообщение ушло"
+          title={t("notificationSettings.sendSoundTitle")}
+          description={t("notificationSettings.sendSoundDescription")}
           control={
             <Switch
               checked={settings.soundOnSend}
-              label="Звук при отправке своего сообщения"
+              label={t("notificationSettings.sendSoundSwitchLabel")}
               onChange={(next) => update({ soundOnSend: next })}
             />
           }
         />
       </SettingSection>
 
-      <SettingSection title="Тихие часы">
+      <SettingSection title={t("notificationSettings.quietHoursSectionTitle")}>
         <SettingRow
           icon={Moon}
-          title="Не беспокоить"
+          title={t("notificationSettings.quietHoursTitle")}
           description={
             settings.quietEnabled
               ? `${minutesToTimeInput(settings.quietFrom)} – ${minutesToTimeInput(settings.quietTo)}`
-              : "Выключено"
+              : t("notificationSettings.quietHoursOff")
           }
           control={
             <Switch
               checked={settings.quietEnabled}
-              label="Тихие часы"
+              label={t("notificationSettings.quietHoursSwitchLabel")}
               onChange={(next) => update({ quietEnabled: next })}
             />
           }
@@ -155,7 +165,7 @@ export function NotificationSettings() {
         {settings.quietEnabled && (
           <div className="flex items-center gap-3 py-3">
             <label className="flex-1 text-sm text-text-secondary">
-              С
+              {t("notificationSettings.fromLabel")}
               <input
                 type="time"
                 className="input mt-1"
@@ -167,7 +177,7 @@ export function NotificationSettings() {
               />
             </label>
             <label className="flex-1 text-sm text-text-secondary">
-              До
+              {t("notificationSettings.toLabel")}
               <input
                 type="time"
                 className="input mt-1"
@@ -181,66 +191,64 @@ export function NotificationSettings() {
           </div>
         )}
         <div className="py-3">
-          <p className="text-sm text-text-muted">
-            В это время сообщения приходят без звука и вибрации — сам чат работает как обычно.
-          </p>
+          <p className="text-sm text-text-muted">{t("notificationSettings.quietHoursHint")}</p>
         </div>
       </SettingSection>
 
-      <SettingSection title="Что присылать">
+      <SettingSection title={t("notificationSettings.whatToSendSectionTitle")}>
         <SettingRow
           icon={MessageSquare}
-          title="Сообщения в чате"
+          title={t("notificationSettings.messagesTitle")}
           control={
             <Switch
               checked={settings.notifyMessages}
-              label="Уведомлять о сообщениях"
+              label={t("notificationSettings.messagesSwitchLabel")}
               onChange={(next) => update({ notifyMessages: next })}
             />
           }
         />
         <SettingRow
           icon={ClipboardList}
-          title="Задачи"
-          description="Назначение и смена статуса"
+          title={t("notificationSettings.tasksTitle")}
+          description={t("notificationSettings.tasksDescription")}
           control={
             <Switch
               checked={settings.notifyTasks}
-              label="Уведомлять о задачах"
+              label={t("notificationSettings.tasksSwitchLabel")}
               onChange={(next) => update({ notifyTasks: next })}
             />
           }
         />
         <SettingRow
           icon={CircleDollarSign}
-          title="Допработы"
-          description="Новые и согласованные"
+          title={t("notificationSettings.changeOrdersTitle")}
+          description={t("notificationSettings.changeOrdersDescription")}
           control={
             <Switch
               checked={settings.notifyChangeOrders}
-              label="Уведомлять о допработах"
+              label={t("notificationSettings.changeOrdersSwitchLabel")}
               onChange={(next) => update({ notifyChangeOrders: next })}
             />
           }
         />
         <SettingRow
           icon={ShieldAlert}
-          title="Дефекты"
+          title={t("notificationSettings.punchTitle")}
           control={
             <Switch
               checked={settings.notifyPunch}
-              label="Уведомлять о дефектах"
+              label={t("notificationSettings.punchSwitchLabel")}
               onChange={(next) => update({ notifyPunch: next })}
             />
           }
         />
         <SettingRow
           icon={ImageIcon}
-          title="Новые фото"
+          title={t("notificationSettings.photosTitle")}
           control={
             <Switch
               checked={settings.notifyPhotos}
-              label="Уведомлять о новых фото"
+              label={t("notificationSettings.photosSwitchLabel")}
               onChange={(next) => update({ notifyPhotos: next })}
             />
           }

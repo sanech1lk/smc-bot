@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useLocale } from "@/components/locale-provider";
 
 export function SignaturePad({ onSave }: { onSave: (dataUrl: string) => void }) {
+  const { t } = useLocale();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const [hasDrawn, setHasDrawn] = useState(false);
@@ -74,13 +76,13 @@ export function SignaturePad({ onSave }: { onSave: (dataUrl: string) => void }) 
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
       />
-      <p className="mt-1 text-center text-sm text-text-muted">Распишитесь пальцем в поле выше</p>
+      <p className="mt-1 text-center text-sm text-text-muted">{t("signaturePad.hint")}</p>
       <div className="mt-3 flex gap-3">
         <button type="button" className="btn-secondary flex-1" onClick={clear}>
-          Очистить
+          {t("signaturePad.clear")}
         </button>
         <button type="button" className="btn-primary flex-1" onClick={save} disabled={!hasDrawn}>
-          Подтвердить приёмку
+          {t("signaturePad.confirm")}
         </button>
       </div>
     </div>

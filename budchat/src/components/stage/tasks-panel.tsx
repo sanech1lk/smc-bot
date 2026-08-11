@@ -6,13 +6,14 @@ import { useStageSocket } from "@/lib/use-stage-socket";
 import { MicButton } from "@/components/mic-button";
 import { CalendarClock, CheckSquare, Plus, User, X } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { ProjectMemberSummary, ProjectRole, TaskStatus, TaskSummary } from "@/types/models";
 
-const STATUS_LABEL: Record<TaskStatus, string> = {
-  NEW: "Новая",
-  IN_PROGRESS: "В работе",
-  REVIEW: "На проверке",
-  DONE: "Готово"
+const STATUS_KEY: Record<TaskStatus, string> = {
+  NEW: "taskStatus.new",
+  IN_PROGRESS: "taskStatus.inProgress",
+  REVIEW: "taskStatus.review",
+  DONE: "taskStatus.done"
 };
 
 const STATUS_COLOR: Record<TaskStatus, string> = {
@@ -40,6 +41,7 @@ export function TasksPanel({
   myRole: ProjectRole;
   compact?: boolean;
 }) {
+  const { t } = useLocale();
   const [tasks, setTasks] = useState<TaskSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -101,7 +103,7 @@ export function TasksPanel({
       {canCreate && (
         <button className="btn-secondary mb-3 w-full" onClick={() => setFormOpen((v) => !v)}>
           {formOpen ? <X size={17} /> : <Plus size={17} />}
-          {formOpen ? "Отмена" : "Новая задача"}
+          {formOpen ? t("common.cancel") : t("tasks.newTaskCta")}
         </button>
       )}
 
@@ -120,8 +122,8 @@ export function TasksPanel({
       {!loading && tasks.length === 0 && (
         <EmptyState
           icon={CheckSquare}
-          title="Задач пока нет"
-          description={canCreate ? "Создайте задачу и назначьте исполнителя из бригады." : undefined}
+          title={t("tasks.emptyTitle")}
+          description={canCreate ? t("tasks.emptyDescription") : undefined}
         />
       )}
 
@@ -131,7 +133,7 @@ export function TasksPanel({
             <div className="flex items-start justify-between gap-2">
               <p className="font-semibold">{task.title}</p>
               <span className={`chip flex-shrink-0 text-xs ${STATUS_COLOR[task.status]}`}>
-                {STATUS_LABEL[task.status]}
+                {t(STATUS_KEY[task.status])}
               </span>
             </div>
             {task.description && <p className="mt-1 text-sm text-text-secondary">{task.description}</p>}
@@ -154,7 +156,9 @@ export function TasksPanel({
                 onClick={() => advanceStatus(task)}
                 className="btn-secondary mt-3 w-full py-2 text-base"
               >
-                {task.status === "REVIEW" ? "Принять работу" : `Перевести в «${STATUS_LABEL[NEXT_STATUS[task.status]!]}»`}
+                {task.status === "REVIEW"
+                  ? t("tasks.acceptWork")
+                  : t("tasks.moveToStatus", { status: t(STATUS_KEY[NEXT_STATUS[task.status]!]) })}
               </button>
             )}
           </div>
@@ -173,6 +177,7 @@ function NewTaskForm({
   members: ProjectMemberSummary[];
   onCreated: (task: TaskSummary) => void;
 }) {
+  const { t } = useLocale();
   const [title, setTitle] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -199,7 +204,7 @@ function NewTaskForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось создать задачу");
+      setError(data.error ?? t("tasks.errorCreate"));
       return;
     }
 
@@ -216,7 +221,7 @@ function NewTaskForm({
       <div className="flex gap-2">
         <input
           className="input flex-1"
-          placeholder="Название задачи"
+          placeholder={t("tasks.titlePlaceholder")}
           required
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -225,13 +230,13 @@ function NewTaskForm({
       </div>
       <textarea
         className="input"
-        placeholder="Описание (необязательно)"
+        placeholder={t("tasks.descriptionPlaceholder")}
         rows={2}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
       <select className="input" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
-        <option value="">Без исполнителя</option>
+        <option value="">{t("tasks.noAssignee")}</option>
         {members.map((m) => (
           <option key={m.userId} value={m.userId}>
             {m.user?.name}
@@ -241,7 +246,7 @@ function NewTaskForm({
       <input className="input" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
       {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Создаём…" : "Создать задачу"}
+        {loading ? t("tasks.submitCreating") : t("tasks.submitCreate")}
       </button>
     </form>
   );

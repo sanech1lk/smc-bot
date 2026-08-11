@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Coins } from "lucide-react";
 import { CURRENCIES } from "@/lib/currency";
+import { useLocale } from "@/components/locale-provider";
 
 export function CurrencyPicker({
   projectId,
@@ -13,6 +14,7 @@ export function CurrencyPicker({
   value: string;
   onChanged: () => void;
 }) {
+  const { t } = useLocale();
   const [saving, setSaving] = useState(false);
 
   async function handleChange(currency: string) {
@@ -30,7 +32,7 @@ export function CurrencyPicker({
     <div className="card space-y-2">
       <p className="flex items-center gap-2 font-semibold">
         <Coins size={18} className="text-text-secondary" />
-        Валюта сметы
+        {t("currencyPicker.title")}
       </p>
       <select
         className="input"
@@ -40,13 +42,11 @@ export function CurrencyPicker({
       >
         {CURRENCIES.map((c) => (
           <option key={c.code} value={c.code}>
-            {c.symbol} — {c.label} ({c.code})
+            {c.symbol} — {t(`currencyName.${c.code}`)} ({c.code})
           </option>
         ))}
       </select>
-      <p className="text-xs text-text-muted">
-        Применяется ко всем сметам объекта и к экспорту в PDF.
-      </p>
+      <p className="text-xs text-text-muted">{t("currencyPicker.note")}</p>
     </div>
   );
 }

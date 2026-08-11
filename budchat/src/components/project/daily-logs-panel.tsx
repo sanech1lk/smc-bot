@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
 import { CloudSun, FileText, Plus, Trash2, Users, X } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { DailyLogSummary, ProjectRole } from "@/types/models";
 
-const WEATHER_PRESETS = ["Ясно", "Облачно", "Дождь", "Снег", "Ветер", "Мороз"];
+const WEATHER_KEYS = ["weather.clear", "weather.cloudy", "weather.rain", "weather.snow", "weather.wind", "weather.frost"];
 
 export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRole: ProjectRole }) {
+  const { t, locale } = useLocale();
   const [logs, setLogs] = useState<DailyLogSummary[] | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const canEdit = myRole !== "CLIENT";
@@ -24,7 +26,7 @@ export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRol
   }, [load]);
 
   async function remove(id: string) {
-    if (!confirm("Удалить отчёт за этот день?")) return;
+    if (!confirm(t("dailyLogs.deleteConfirm"))) return;
     const res = await fetch(`/api/daily-logs/${id}`, { method: "DELETE" });
     if (res.ok) load();
   }
@@ -36,7 +38,7 @@ export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRol
       {canEdit && (
         <button className="btn-secondary w-full" onClick={() => setFormOpen((v) => !v)}>
           {formOpen ? <X size={17} /> : <Plus size={17} />}
-          {formOpen ? "Отмена" : "Отчёт за день"}
+          {formOpen ? t("common.cancel") : t("dailyLogs.addCta")}
         </button>
       )}
 
@@ -53,12 +55,8 @@ export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRol
       {logs.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="Отчётов пока нет"
-          description={
-            canEdit
-              ? "Один короткий отчёт в день — погода, сколько человек вышло, что сделано. Его можно показать заказчику."
-              : "Подрядчик ещё не заполнял ежедневные отчёты."
-          }
+          title={t("dailyLogs.emptyTitle")}
+          description={canEdit ? t("dailyLogs.emptyDescriptionEditable") : t("dailyLogs.emptyDescriptionReadonly")}
         />
       ) : (
         <div className="space-y-2">
@@ -66,13 +64,13 @@ export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRol
             <div key={log.id} className="card">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-semibold capitalize">
-                  {format(new Date(log.date), "d MMMM yyyy", { locale: ru })}
+                  {format(new Date(log.date), "d MMMM yyyy", { locale: dateFnsLocale(locale) })}
                 </p>
                 {canEdit && (
                   <button
                     onClick={() => remove(log.id)}
                     className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-status-red"
-                    aria-label="Удалить отчёт"
+                    aria-label={t("dailyLogs.deleteAria")}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -90,7 +88,7 @@ export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRol
                 {log.crewCount != null && (
                   <span className="inline-flex items-center gap-1.5">
                     <Users size={14} />
-                    {log.crewCount} чел.
+                    {log.crewCount} {t("dailyLogs.crewCountSuffix")}
                   </span>
                 )}
               </div>
@@ -113,6 +111,7 @@ export function DailyLogsPanel({ projectId, myRole }: { projectId: string; myRol
 }
 
 function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () => void }) {
+  const { t } = useLocale();
   const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [weather, setWeather] = useState("");
   const [temperature, setTemperature] = useState("");
@@ -143,7 +142,7 @@ function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () =
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось сохранить отчёт");
+      setError(data.error ?? t("dailyLogs.errorSave"));
       return;
     }
     onSaved();
@@ -154,25 +153,28 @@ function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () =
       <input className="input" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
 
       <div className="flex flex-wrap gap-2">
-        {WEATHER_PRESETS.map((w) => (
-          <button
-            type="button"
-            key={w}
-            onClick={() => setWeather(weather === w ? "" : w)}
-            className={`chip py-1.5 text-sm transition-colors ${
-              weather === w ? "bg-brand text-white" : "bg-bg-elevated text-text-secondary"
-            }`}
-          >
-            {w}
-          </button>
-        ))}
+        {WEATHER_KEYS.map((key) => {
+          const label = t(key);
+          return (
+            <button
+              type="button"
+              key={key}
+              onClick={() => setWeather(weather === label ? "" : label)}
+              className={`chip py-1.5 text-sm transition-colors ${
+                weather === label ? "bg-brand text-white" : "bg-bg-elevated text-text-secondary"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <input
           className="input"
           type="number"
-          placeholder="Температура, °C"
+          placeholder={t("dailyLogs.temperaturePlaceholder")}
           value={temperature}
           onChange={(e) => setTemperature(e.target.value)}
         />
@@ -180,7 +182,7 @@ function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () =
           className="input"
           type="number"
           min="0"
-          placeholder="Человек на объекте"
+          placeholder={t("dailyLogs.crewCountPlaceholder")}
           value={crewCount}
           onChange={(e) => setCrewCount(e.target.value)}
         />
@@ -189,7 +191,7 @@ function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () =
       <textarea
         className="input"
         rows={3}
-        placeholder="Что сделано за день"
+        placeholder={t("dailyLogs.workDonePlaceholder")}
         required
         value={workDone}
         onChange={(e) => setWorkDone(e.target.value)}
@@ -197,17 +199,15 @@ function DailyLogForm({ projectId, onSaved }: { projectId: string; onSaved: () =
       <textarea
         className="input"
         rows={2}
-        placeholder="Проблемы, простои (необязательно)"
+        placeholder={t("dailyLogs.issuesPlaceholder")}
         value={issues}
         onChange={(e) => setIssues(e.target.value)}
       />
 
       {error && <ErrorNote>{error}</ErrorNote>}
-      <p className="text-xs text-text-muted">
-        Если отчёт за эту дату уже есть, он будет заменён.
-      </p>
+      <p className="text-xs text-text-muted">{t("dailyLogs.overwriteNote")}</p>
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Сохраняем…" : "Сохранить отчёт"}
+        {loading ? t("dailyLogs.saving") : t("dailyLogs.submit")}
       </button>
     </form>
   );

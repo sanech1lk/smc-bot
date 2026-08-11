@@ -9,10 +9,12 @@ export function shiftMinutes(startedAt: Date | string, endedAt: Date | string | 
   return Math.max(0, Math.floor((end - start) / 60000));
 }
 
-export function formatDuration(minutes: number): string {
+/** `hourUnit`/`minuteUnit` default to Russian so existing call sites and
+ *  tests keep working; UI call sites should pass the translated units. */
+export function formatDuration(minutes: number, hourUnit = "ч", minuteUnit = "мин"): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
+  return h > 0 ? `${h} ${hourUnit} ${m} ${minuteUnit}` : `${m} ${minuteUnit}`;
 }
 
 /**

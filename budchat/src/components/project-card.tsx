@@ -1,13 +1,16 @@
+"use client";
+
 import Link from "next/link";
 import { AlertTriangle, ChevronRight, MapPin, Users } from "lucide-react";
 import type { ProjectSummary } from "@/types/models";
-import { STAGE_STATUS_META } from "@/lib/stages";
+import { STAGE_STATUS_KEY, STAGE_STATUS_META } from "@/lib/stages";
+import { useLocale } from "@/components/locale-provider";
 
-const PROJECT_STATUS_LABEL: Record<ProjectSummary["status"], string> = {
-  ACTIVE: "В работе",
-  PAUSED: "Приостановлен",
-  DONE: "Завершён",
-  CANCELLED: "Отменён"
+const PROJECT_STATUS_KEY: Record<ProjectSummary["status"], string> = {
+  ACTIVE: "projectStatus.active",
+  PAUSED: "projectStatus.paused",
+  DONE: "projectStatus.done",
+  CANCELLED: "projectStatus.cancelled"
 };
 
 const PROJECT_STATUS_CHIP: Record<ProjectSummary["status"], string> = {
@@ -52,6 +55,7 @@ function ProgressRing({ percent, size = 46 }: { percent: number; size?: number }
 }
 
 export function ProjectCard({ project }: { project: ProjectSummary }) {
+  const { t } = useLocale();
   const total = project.stages.length || 1;
   const doneCount = project.stages.filter((s) => s.status === "DONE").length;
   const problemCount = project.stages.filter((s) => s.status === "PROBLEM").length;
@@ -90,12 +94,16 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-[3px]" role="img" aria-label={`Прогресс ${percent}%`}>
+      <div
+        className="mt-4 flex items-center gap-[3px]"
+        role="img"
+        aria-label={t("projectCard.progressAria", { percent })}
+      >
         {project.stages.map((stage) => (
           <span
             key={stage.id}
             className={`h-1.5 flex-1 rounded-full transition-colors ${STAGE_STATUS_META[stage.status].dot}`}
-            title={`${stage.name}: ${STAGE_STATUS_META[stage.status].label}`}
+            title={`${stage.name}: ${t(STAGE_STATUS_KEY[stage.status])}`}
           />
         ))}
       </div>
@@ -103,10 +111,10 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-border-soft pt-3">
         <div className="flex min-w-0 items-center gap-2">
           <span className={`chip py-1 text-xs ${PROJECT_STATUS_CHIP[project.status]}`}>
-            {PROJECT_STATUS_LABEL[project.status]}
+            {t(PROJECT_STATUS_KEY[project.status])}
           </span>
           <span className="min-w-0 truncate text-sm text-text-secondary">
-            {currentStage ? currentStage.name : "Все этапы готовы"}
+            {currentStage ? currentStage.name : t("projectCard.allStagesDone")}
           </span>
         </div>
         <span className="flex flex-shrink-0 items-center gap-1.5 text-sm text-text-muted">

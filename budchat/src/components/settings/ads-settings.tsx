@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Megaphone } from "lucide-react";
 import { Sheet, SettingRow, SettingSection, Switch } from "@/components/ui";
 import { useSettings } from "@/components/settings-provider";
+import { useLocale } from "@/components/locale-provider";
 
 /**
  * BudChat shows no advertising today — there is no ad network wired in. This
@@ -17,6 +18,7 @@ import { useSettings } from "@/components/settings-provider";
  * which gives both buttons the same size and color prominence.
  */
 export function AdsSettings() {
+  const { t } = useLocale();
   const { settings, update } = useSettings();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -35,25 +37,18 @@ export function AdsSettings() {
 
   return (
     <>
-      <SettingSection title="Реклама">
+      <SettingSection title={t("adsSettings.title")}>
         <div className="py-3">
-          <p className="text-sm text-text-secondary">
-            Сейчас BudChat не показывает рекламу. Здесь заранее настраивается согласие на её вид —
-            на случай, если она появится в будущей версии.
-          </p>
+          <p className="text-sm text-text-secondary">{t("adsSettings.intro")}</p>
         </div>
         <SettingRow
           icon={Megaphone}
-          title="Персонализированная реклама"
-          description={
-            settings.adsPersonalized
-              ? "Разрешена — подбор с учётом ваших действий в приложении"
-              : "Выключена — при появлении рекламы она будет обычной, без подбора"
-          }
+          title={t("adsSettings.personalizedTitle")}
+          description={settings.adsPersonalized ? t("adsSettings.personalizedOn") : t("adsSettings.personalizedOff")}
           control={
             <Switch
               checked={settings.adsPersonalized}
-              label="Персонализированная реклама"
+              label={t("adsSettings.personalizedTitle")}
               onChange={(next) => (next ? setConfirming(true) : turnOff())}
             />
           }
@@ -62,20 +57,13 @@ export function AdsSettings() {
 
       {confirming && (
         <Sheet onClose={() => setConfirming(false)}>
-          <h3 className="text-lg font-bold">Персонализированная реклама</h3>
-          <p className="mt-2 text-text-secondary">
-            Если в приложении появится реклама, мы сможем подбирать её на основе того, какими
-            разделами BudChat вы пользуетесь. Содержимое чатов, фото объектов и сметы для этого
-            никогда не используется.
-          </p>
-          <p className="mt-2 text-text-secondary">
-            Без согласия реклама (если появится) будет показываться без подбора под вас. Это ничего
-            не меняет для вашей команды и объектов.
-          </p>
+          <h3 className="text-lg font-bold">{t("adsSettings.dialogTitle")}</h3>
+          <p className="mt-2 text-text-secondary">{t("adsSettings.dialogBody1")}</p>
+          <p className="mt-2 text-text-secondary">{t("adsSettings.dialogBody2")}</p>
           <p className="mt-2 text-sm text-text-muted">
-            Согласие можно отозвать в любой момент здесь же.{" "}
+            {t("adsSettings.dialogHint")}{" "}
             <Link href="/legal/privacy" className="text-brand underline">
-              Политика конфиденциальности
+              {t("adsSettings.privacyLink")}
             </Link>
             .
           </p>
@@ -84,10 +72,10 @@ export function AdsSettings() {
               nudge the user toward "allow" by making it visually louder. */}
           <div className="mt-5 grid grid-cols-2 gap-3">
             <button className="btn-secondary" onClick={() => setConfirming(false)} disabled={busy}>
-              Не сейчас
+              {t("adsSettings.notNow")}
             </button>
             <button className="btn-secondary" onClick={turnOn} disabled={busy}>
-              {busy ? "Сохраняем…" : "Разрешить"}
+              {busy ? t("adsSettings.saving") : t("adsSettings.allow")}
             </button>
           </div>
         </Sheet>

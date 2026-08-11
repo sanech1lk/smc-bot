@@ -12,17 +12,28 @@ import { TasksPanel } from "@/components/stage/tasks-panel";
 import { EstimatePanel } from "@/components/stage/estimate-panel";
 import { ChecklistPanel } from "@/components/stage/checklist-panel";
 import { SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { ProjectMemberSummary, ProjectRole, StageStatus } from "@/types/models";
 
 type Tab = "chat" | "photos" | "tasks" | "estimate" | "checklist";
 
-const TABS: { id: Tab; label: string; icon: typeof MessageCircle }[] = [
-  { id: "chat", label: "Чат", icon: MessageCircle },
-  { id: "photos", label: "Фото", icon: Camera },
-  { id: "tasks", label: "Задачи", icon: CheckSquare },
-  { id: "estimate", label: "Смета", icon: BarChart3 },
-  { id: "checklist", label: "Приёмка", icon: ListChecks }
-];
+const TAB_ICON: Record<Tab, typeof MessageCircle> = {
+  chat: MessageCircle,
+  photos: Camera,
+  tasks: CheckSquare,
+  estimate: BarChart3,
+  checklist: ListChecks
+};
+
+const TAB_KEY: Record<Tab, string> = {
+  chat: "stagePage.tabChat",
+  photos: "stagePage.tabPhotos",
+  tasks: "stagePage.tabTasks",
+  estimate: "stagePage.tabEstimate",
+  checklist: "stagePage.tabChecklist"
+};
+
+const TAB_ORDER: Tab[] = ["chat", "photos", "tasks", "estimate", "checklist"];
 
 interface StageDetail {
   id: string;
@@ -34,6 +45,7 @@ interface StageDetail {
 export default function StagePage() {
   const params = useParams<{ id: string; stageId: string }>();
   const { data: session } = useSession();
+  const { t } = useLocale();
   const [stage, setStage] = useState<StageDetail | null>(null);
   const [myRole, setMyRole] = useState<ProjectRole>("WORKER");
   const [members, setMembers] = useState<ProjectMemberSummary[]>([]);
@@ -76,7 +88,7 @@ export default function StagePage() {
   if (!stage || !session?.user) {
     return (
       <div>
-        <TopBar title="Этап" backHref={`/projects/${params.id}`} />
+        <TopBar title={t("stagePage.fallbackTitle")} backHref={`/projects/${params.id}`} />
         <div className="px-4 py-4">
           <SkeletonList rows={4} height="h-16" />
         </div>
@@ -106,7 +118,7 @@ export default function StagePage() {
 
         {tab === "chat" && (
           <aside className="hidden border-l border-border px-4 py-4 lg:block">
-            <p className="label mb-3">Задачи этапа</p>
+            <p className="label mb-3">{t("stagePage.chatSidebarTitle")}</p>
             <TasksPanel stageId={stage.id} members={members} myRole={myRole} compact />
           </aside>
         )}
@@ -115,8 +127,9 @@ export default function StagePage() {
       {/* Fixed bottom tab bar: five targets fit without horizontal scrolling. */}
       <nav className="bottom-nav-safe fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-bg/85 backdrop-blur-xl lg:hidden">
         <div className="flex px-1 pt-1.5">
-          {TABS.map(({ id, label, icon: Icon }) => {
+          {TAB_ORDER.map((id) => {
             const active = tab === id;
+            const Icon = TAB_ICON[id];
             return (
               <button
                 key={id}
@@ -138,7 +151,7 @@ export default function StagePage() {
                     active ? "font-semibold text-brand" : "text-text-muted"
                   }`}
                 >
-                  {label}
+                  {t(TAB_KEY[id])}
                 </span>
               </button>
             );
@@ -148,18 +161,21 @@ export default function StagePage() {
 
       {/* Desktop keeps a horizontal tab row instead of the bottom bar. */}
       <div className="fixed bottom-0 left-0 right-0 z-30 hidden border-t border-border bg-bg/90 px-4 py-2 backdrop-blur-md lg:flex lg:gap-2">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
-              tab === id ? "bg-brand text-white" : "text-text-secondary hover:bg-bg-elevated"
-            }`}
-          >
-            <Icon size={17} />
-            {label}
-          </button>
-        ))}
+        {TAB_ORDER.map((id) => {
+          const Icon = TAB_ICON[id];
+          return (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
+                tab === id ? "bg-brand text-white" : "text-text-secondary hover:bg-bg-elevated"
+              }`}
+            >
+              <Icon size={17} />
+              {t(TAB_KEY[id])}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

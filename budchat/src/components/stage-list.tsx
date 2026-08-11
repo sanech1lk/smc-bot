@@ -4,7 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowDown, ArrowUp, Check, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { StatusDot } from "@/components/status-dot";
-import { STAGE_STATUS_META } from "@/lib/stages";
+import { STAGE_STATUS_KEY, STAGE_STATUS_META } from "@/lib/stages";
+import { useLocale } from "@/components/locale-provider";
 import type { ProjectRole, StageSummary } from "@/types/models";
 
 export function StageList({
@@ -18,6 +19,7 @@ export function StageList({
   myRole: ProjectRole;
   onChange: () => void;
 }) {
+  const { t } = useLocale();
   const [editMode, setEditMode] = useState(false);
   const [newStageName, setNewStageName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,14 +43,14 @@ export function StageList({
   }
 
   async function removeStage(stageId: string) {
-    if (!confirm("Удалить этап вместе со всем чатом, фото, задачами и сметой этого этапа?")) return;
+    if (!confirm(t("stageList.deleteConfirm"))) return;
     setBusy(true);
     const res = await fetch(`/api/stages/${stageId}`, { method: "DELETE" });
     setBusy(false);
     if (res.ok) onChange();
     else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Не удалось удалить этап");
+      alert(data.error ?? t("stageList.deleteError"));
     }
   }
 
@@ -77,7 +79,7 @@ export function StageList({
           onClick={() => setEditMode((v) => !v)}
         >
           {editMode ? <Check size={17} /> : <Pencil size={16} />}
-          {editMode ? "Готово" : "Редактировать этапы"}
+          {editMode ? t("stageList.editDone") : t("stageList.editStages")}
         </button>
       )}
 
@@ -99,7 +101,7 @@ export function StageList({
                   className="btn-secondary flex-1 py-2.5 text-sm disabled:opacity-30"
                 >
                   <ArrowUp size={16} />
-                  Выше
+                  {t("stageList.moveUp")}
                 </button>
                 <button
                   disabled={busy || index === sorted.length - 1}
@@ -107,13 +109,13 @@ export function StageList({
                   className="btn-secondary flex-1 py-2.5 text-sm disabled:opacity-30"
                 >
                   <ArrowDown size={16} />
-                  Ниже
+                  {t("stageList.moveDown")}
                 </button>
                 <button
                   disabled={busy || sorted.length <= 1}
                   onClick={() => removeStage(stage.id)}
                   className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors hover:text-status-red disabled:opacity-30"
-                  aria-label={`Удалить этап ${stage.name}`}
+                  aria-label={t("stageList.deleteStageAria", { name: stage.name })}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -134,7 +136,7 @@ export function StageList({
             <span className="min-w-0 flex-1 truncate text-base font-semibold">{stage.name}</span>
             <span className={`chip flex-shrink-0 py-1 text-xs ${STAGE_STATUS_META[stage.status].chip}`}>
               <StatusDot status={stage.status} />
-              <span className="hidden xs:inline">{STAGE_STATUS_META[stage.status].label}</span>
+              <span className="hidden xs:inline">{t(STAGE_STATUS_KEY[stage.status])}</span>
             </span>
             <ChevronRight
               size={18}
@@ -148,7 +150,7 @@ export function StageList({
         <form onSubmit={handleAddStage} className="animate-in flex gap-2 pt-1">
           <input
             className="input"
-            placeholder="Новый этап"
+            placeholder={t("stageList.newStagePlaceholder")}
             value={newStageName}
             onChange={(e) => setNewStageName(e.target.value)}
           />

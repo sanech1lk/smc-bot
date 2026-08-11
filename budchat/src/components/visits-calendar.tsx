@@ -13,9 +13,10 @@ import {
   startOfWeek,
   subMonths
 } from "date-fns";
-import { ru } from "date-fns/locale";
 import { CalendarPlus, ChevronLeft, ChevronRight, Trash2, Truck, X } from "lucide-react";
 import { ErrorNote } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { StageSummary, VisitSummary } from "@/types/models";
 
 export function VisitsCalendar({
@@ -31,9 +32,20 @@ export function VisitsCalendar({
   canEdit: boolean;
   onChange: () => void;
 }) {
+  const { t, locale } = useLocale();
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState<Date>(() => new Date());
   const [formOpen, setFormOpen] = useState(false);
+
+  const weekdays = [
+    t("visits.weekdayMon"),
+    t("visits.weekdayTue"),
+    t("visits.weekdayWed"),
+    t("visits.weekdayThu"),
+    t("visits.weekdayFri"),
+    t("visits.weekdaySat"),
+    t("visits.weekdaySun")
+  ];
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
@@ -54,7 +66,7 @@ export function VisitsCalendar({
   const selectedVisits = visitsByDay.get(selectedKey) ?? [];
 
   async function handleDelete(id: string) {
-    if (!confirm("Удалить выезд?")) return;
+    if (!confirm(t("visits.deleteConfirm"))) return;
     const res = await fetch(`/api/visits/${id}`, { method: "DELETE" });
     if (res.ok) onChange();
   }
@@ -66,23 +78,25 @@ export function VisitsCalendar({
           <button
             onClick={() => setMonth((m) => subMonths(m, 1))}
             className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-elevated"
-            aria-label="Предыдущий месяц"
+            aria-label={t("visits.prevMonthAria")}
           >
             <ChevronLeft size={18} />
           </button>
-          <p className="font-semibold capitalize">{format(month, "LLLL yyyy", { locale: ru })}</p>
+          <p className="font-semibold capitalize">
+            {format(month, "LLLL yyyy", { locale: dateFnsLocale(locale) })}
+          </p>
           <button
             onClick={() => setMonth((m) => addMonths(m, 1))}
             className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-elevated"
-            aria-label="Следующий месяц"
+            aria-label={t("visits.nextMonthAria")}
           >
             <ChevronRight size={18} />
           </button>
         </div>
 
         <div className="grid grid-cols-7 gap-1 text-center text-xs text-text-muted">
-          {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
-            <div key={d} className="py-1">
+          {weekdays.map((d, i) => (
+            <div key={i} className="py-1">
               {d}
             </div>
           ))}
@@ -118,11 +132,11 @@ export function VisitsCalendar({
 
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <p className="font-semibold">{format(selected, "d MMMM", { locale: ru })}</p>
+          <p className="font-semibold">{format(selected, "d MMMM", { locale: dateFnsLocale(locale) })}</p>
           {canEdit && (
             <button className="btn-secondary py-2 text-sm" onClick={() => setFormOpen((v) => !v)}>
               {formOpen ? <X size={16} /> : <CalendarPlus size={16} />}
-              {formOpen ? "Отмена" : "Выезд"}
+              {formOpen ? t("common.cancel") : t("visits.addCta")}
             </button>
           )}
         </div>
@@ -140,7 +154,7 @@ export function VisitsCalendar({
         )}
 
         {selectedVisits.length === 0 && !formOpen && (
-          <p className="text-text-secondary">Выездов не запланировано</p>
+          <p className="text-text-secondary">{t("visits.noneScheduled")}</p>
         )}
 
         <div className="space-y-2">
@@ -148,8 +162,12 @@ export function VisitsCalendar({
             <div key={v.id} className="card flex items-start gap-3">
               <Truck size={22} className="mt-0.5 flex-shrink-0 text-text-muted" />
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">{v.crewName || "Бригада"}</p>
-                {v.stage && <p className="text-sm text-text-secondary">Этап: {v.stage.name}</p>}
+                <p className="font-semibold">{v.crewName || t("visits.crewFallback")}</p>
+                {v.stage && (
+                  <p className="text-sm text-text-secondary">
+                    {t("visits.stagePrefix")} {v.stage.name}
+                  </p>
+                )}
                 {v.note && <p className="text-sm text-text-secondary">{v.note}</p>}
                 <p className="text-sm text-text-muted">{format(new Date(v.date), "HH:mm")}</p>
               </div>
@@ -157,7 +175,7 @@ export function VisitsCalendar({
                 <button
                   onClick={() => handleDelete(v.id)}
                   className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-status-red active:bg-status-red/10"
-                  aria-label="Удалить выезд"
+                  aria-label={t("visits.deleteVisitAria")}
                 >
                   <Trash2 size={17} />
                 </button>
@@ -181,6 +199,7 @@ function AddVisitForm({
   stages: StageSummary[];
   onCreated: () => void;
 }) {
+  const { t } = useLocale();
   const [time, setTime] = useState("09:00");
   const [crewName, setCrewName] = useState("");
   const [stageId, setStageId] = useState("");
@@ -211,7 +230,7 @@ function AddVisitForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось создать выезд");
+      setError(data.error ?? t("visits.errorCreate"));
       return;
     }
 
@@ -229,13 +248,13 @@ function AddVisitForm({
         />
         <input
           className="input"
-          placeholder="Бригада"
+          placeholder={t("visits.crewPlaceholder")}
           value={crewName}
           onChange={(e) => setCrewName(e.target.value)}
         />
       </div>
       <select className="input" value={stageId} onChange={(e) => setStageId(e.target.value)}>
-        <option value="">Без привязки к этапу</option>
+        <option value="">{t("visits.noStage")}</option>
         {stages.map((s) => (
           <option key={s.id} value={s.id}>
             {s.name}
@@ -244,13 +263,13 @@ function AddVisitForm({
       </select>
       <input
         className="input"
-        placeholder="Комментарий"
+        placeholder={t("visits.notePlaceholder")}
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
       {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Сохраняем…" : "Запланировать выезд"}
+        {loading ? t("visits.submitCreating") : t("visits.submit")}
       </button>
     </form>
   );

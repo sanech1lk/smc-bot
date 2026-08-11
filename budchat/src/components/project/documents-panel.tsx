@@ -2,17 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
 import { FileText, FolderOpen, Trash2, Upload } from "lucide-react";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { DocumentCategory, DocumentSummary, ProjectRole } from "@/types/models";
 
-const CATEGORY_LABEL: Record<DocumentCategory, string> = {
-  CONTRACT: "Договор",
-  DRAWING: "Чертёж",
-  CERTIFICATE: "Сертификат",
-  INVOICE: "Счёт",
-  OTHER: "Прочее"
+const CATEGORY_KEY: Record<DocumentCategory, string> = {
+  CONTRACT: "documentCategory.contract",
+  DRAWING: "documentCategory.drawing",
+  CERTIFICATE: "documentCategory.certificate",
+  INVOICE: "documentCategory.invoice",
+  OTHER: "documentCategory.other"
 };
 
 const CATEGORY_CHIP: Record<DocumentCategory, string> = {
@@ -23,13 +24,14 @@ const CATEGORY_CHIP: Record<DocumentCategory, string> = {
   OTHER: "bg-bg-elevated text-text-secondary"
 };
 
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} Б`;
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} КБ`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+function formatSize(bytes: number, units: { bytes: string; kb: string; mb: string }) {
+  if (bytes < 1024) return `${bytes} ${units.bytes}`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} ${units.kb}`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} ${units.mb}`;
 }
 
 export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRole: ProjectRole }) {
+  const { t, locale } = useLocale();
   const [documents, setDocuments] = useState<DocumentSummary[] | null>(null);
   const [category, setCategory] = useState<DocumentCategory>("CONTRACT");
   const [filter, setFilter] = useState<DocumentCategory | "ALL">("ALL");
@@ -37,6 +39,7 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const canEdit = myRole !== "CLIENT";
+  const sizeUnits = { bytes: t("documents.unitBytes"), kb: t("documents.unitKb"), mb: t("documents.unitMb") };
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}/documents`);
@@ -63,14 +66,14 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось загрузить документ");
+      setError(data.error ?? t("documents.errorUpload"));
       return;
     }
     load();
   }
 
   async function remove(id: string) {
-    if (!confirm("Удалить документ?")) return;
+    if (!confirm(t("documents.deleteConfirm"))) return;
     const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
     if (res.ok) load();
   }
@@ -88,9 +91,9 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
             filter === "ALL" ? "bg-brand text-white" : "bg-bg-card text-text-secondary"
           }`}
         >
-          Все
+          {t("documents.filterAll")}
         </button>
-        {(Object.keys(CATEGORY_LABEL) as DocumentCategory[]).map((c) => (
+        {(Object.keys(CATEGORY_KEY) as DocumentCategory[]).map((c) => (
           <button
             key={c}
             onClick={() => setFilter(c)}
@@ -98,16 +101,16 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
               filter === c ? "bg-brand text-white" : "bg-bg-card text-text-secondary"
             }`}
           >
-            {CATEGORY_LABEL[c]}
+            {t(CATEGORY_KEY[c])}
           </button>
         ))}
       </div>
 
       {canEdit && (
         <div className="card space-y-3">
-          <p className="font-semibold">Загрузить документ</p>
+          <p className="font-semibold">{t("documents.uploadTitle")}</p>
           <div className="flex gap-2 overflow-x-auto">
-            {(Object.keys(CATEGORY_LABEL) as DocumentCategory[]).map((c) => (
+            {(Object.keys(CATEGORY_KEY) as DocumentCategory[]).map((c) => (
               <button
                 key={c}
                 onClick={() => setCategory(c)}
@@ -115,7 +118,7 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
                   category === c ? "bg-brand text-white" : "bg-bg-elevated text-text-secondary"
                 }`}
               >
-                {CATEGORY_LABEL[c]}
+                {t(CATEGORY_KEY[c])}
               </button>
             ))}
           </div>
@@ -129,18 +132,18 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
           />
           <label htmlFor="document-input" className="btn-primary w-full cursor-pointer">
             <Upload size={18} />
-            {uploading ? "Загружаем…" : "Выбрать файл"}
+            {uploading ? t("documents.uploading") : t("documents.chooseFile")}
           </label>
           {error && <ErrorNote>{error}</ErrorNote>}
-          <p className="text-xs text-text-muted">PDF, Word, Excel или изображение, до 25 МБ.</p>
+          <p className="text-xs text-text-muted">{t("documents.hint")}</p>
         </div>
       )}
 
       {visible.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
-          title="Документов нет"
-          description={canEdit ? "Договоры, чертежи в PDF и сертификаты на материалы — всё в одном месте." : undefined}
+          title={t("documents.emptyTitle")}
+          description={canEdit ? t("documents.emptyDescription") : undefined}
         />
       ) : (
         <div className="space-y-2">
@@ -157,18 +160,18 @@ export function DocumentsPanel({ projectId, myRole }: { projectId: string; myRol
               >
                 <p className="truncate font-semibold">{doc.name}</p>
                 <p className="truncate text-sm text-text-secondary">
-                  {formatSize(doc.sizeBytes)} · {doc.uploadedBy.name} ·{" "}
-                  {format(new Date(doc.createdAt), "d MMM yyyy", { locale: ru })}
+                  {formatSize(doc.sizeBytes, sizeUnits)} · {doc.uploadedBy.name} ·{" "}
+                  {format(new Date(doc.createdAt), "d MMM yyyy", { locale: dateFnsLocale(locale) })}
                 </p>
               </a>
               <span className={`chip flex-shrink-0 py-1 text-xs ${CATEGORY_CHIP[doc.category]}`}>
-                {CATEGORY_LABEL[doc.category]}
+                {t(CATEGORY_KEY[doc.category])}
               </span>
               {canEdit && (
                 <button
                   onClick={() => remove(doc.id)}
                   className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-status-red"
-                  aria-label={`Удалить ${doc.name}`}
+                  aria-label={t("documents.deleteAria", { name: doc.name })}
                 >
                   <Trash2 size={16} />
                 </button>

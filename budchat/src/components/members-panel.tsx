@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { MailPlus, QrCode, ShieldCheck, Trash2, UserPlus, X } from "lucide-react";
 import { Avatar, ErrorNote, InfoNote } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { ProjectMemberSummary, ProjectRole } from "@/types/models";
 
-const ROLE_LABEL: Record<ProjectRole, string> = {
-  ADMIN: "Админ",
-  WORKER: "Рабочий",
-  CLIENT: "Заказчик"
+const ROLE_KEY: Record<ProjectRole, string> = {
+  ADMIN: "role.admin",
+  WORKER: "role.worker",
+  CLIENT: "role.client"
 };
 
 const ROLE_CHIP: Record<ProjectRole, string> = {
@@ -35,6 +36,7 @@ export function MembersPanel({
   myRole: ProjectRole;
   onChange: () => void;
 }) {
+  const { t } = useLocale();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<ProjectRole>("WORKER");
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +74,13 @@ export function MembersPanel({
     setLoading(false);
 
     if (!res.ok) {
-      setError(data.error ?? "Не удалось добавить участника");
+      setError(data.error ?? t("members.errorAdd"));
       return;
     }
 
     setEmail("");
     if (data.invited) {
-      setNotice("Приглашение отправлено — участник появится сразу после регистрации");
+      setNotice(t("members.inviteSentNotice"));
       loadInvitations();
     } else {
       onChange();
@@ -86,12 +88,12 @@ export function MembersPanel({
   }
 
   async function handleRemove(memberId: string) {
-    if (!confirm("Удалить участника из объекта?")) return;
+    if (!confirm(t("members.removeConfirm"))) return;
     const res = await fetch(`/api/projects/${projectId}/members/${memberId}`, { method: "DELETE" });
     if (res.ok) onChange();
     else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось удалить участника");
+      setError(data.error ?? t("members.errorRemove"));
     }
   }
 
@@ -121,12 +123,12 @@ export function MembersPanel({
           <form onSubmit={handleAdd} className="card space-y-3">
             <p className="flex items-center gap-2 font-semibold">
               <UserPlus size={18} className="text-text-secondary" />
-              Добавить участника
+              {t("members.addTitle")}
             </p>
             <input
               className="input"
               type="email"
-              placeholder="email@example.com"
+              placeholder={t("members.emailPlaceholder")}
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -141,46 +143,38 @@ export function MembersPanel({
                     role === r ? "bg-brand text-white" : "bg-bg-elevated text-text-secondary"
                   }`}
                 >
-                  {ROLE_LABEL[r]}
+                  {t(ROLE_KEY[r])}
                 </button>
               ))}
             </div>
             {error && <ErrorNote>{error}</ErrorNote>}
             {notice && <InfoNote>{notice}</InfoNote>}
-            <p className="text-xs text-text-muted">
-              Если человек ещё не зарегистрирован — он получит приглашение на почту.
-            </p>
+            <p className="text-xs text-text-muted">{t("members.inviteNote")}</p>
             <button type="submit" className="btn-primary w-full" disabled={loading}>
               <MailPlus size={18} />
-              {loading ? "Добавляем…" : "Добавить"}
+              {loading ? t("members.adding") : t("members.addCta")}
             </button>
           </form>
 
           <div className="card space-y-3">
             <p className="flex items-center gap-2 font-semibold">
               <QrCode size={18} className="text-text-secondary" />
-              QR-код для бригады
+              {t("members.qrTitle")}
             </p>
-            <p className="text-sm text-text-secondary">
-              Рабочий сканирует код на объекте и попадает сюда без ввода email.
-            </p>
+            <p className="text-sm text-text-secondary">{t("members.qrDescription")}</p>
             {qr ? (
               <div className="flex flex-col items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qr.dataUrl}
-                  alt="QR-код приглашения"
-                  className="h-56 w-56 rounded-xl bg-white p-2"
-                />
+                <img src={qr.dataUrl} alt={t("members.qrAlt")} className="h-56 w-56 rounded-xl bg-white p-2" />
                 <p className="break-all text-center text-xs text-text-muted">{qr.url}</p>
                 <button type="button" className="btn-secondary w-full" onClick={generateQr}>
-                  Обновить код
+                  {t("members.refreshQr")}
                 </button>
               </div>
             ) : (
               <button type="button" className="btn-secondary w-full" onClick={generateQr} disabled={qrLoading}>
                 <QrCode size={18} />
-                {qrLoading ? "Готовим…" : "Показать QR-код"}
+                {qrLoading ? t("members.preparingQr") : t("members.showQr")}
               </button>
             )}
           </div>
@@ -197,13 +191,13 @@ export function MembersPanel({
             </div>
             <span className={`chip flex-shrink-0 py-1 text-xs ${ROLE_CHIP[m.role]}`}>
               {m.role === "ADMIN" && <ShieldCheck size={13} />}
-              {ROLE_LABEL[m.role]}
+              {t(ROLE_KEY[m.role])}
             </span>
             {isAdmin && (
               <button
                 onClick={() => handleRemove(m.id)}
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:text-status-red"
-                aria-label={`Удалить ${m.user?.name}`}
+                aria-label={t("members.deleteMemberAria", { name: m.user?.name ?? "" })}
               >
                 <Trash2 size={17} />
               </button>
@@ -214,7 +208,7 @@ export function MembersPanel({
 
       {isAdmin && invitations.length > 0 && (
         <div>
-          <p className="label mb-2">Ожидают регистрации</p>
+          <p className="label mb-2">{t("members.pendingTitle")}</p>
           <div className="space-y-2">
             {invitations
               .filter((inv) => inv.email)
@@ -225,15 +219,15 @@ export function MembersPanel({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{inv.email}</p>
-                    <p className="text-xs text-text-muted">приглашение отправлено</p>
+                    <p className="text-xs text-text-muted">{t("members.invitationSentNote")}</p>
                   </div>
                   <span className={`chip flex-shrink-0 py-1 text-xs ${ROLE_CHIP[inv.role]}`}>
-                    {ROLE_LABEL[inv.role]}
+                    {t(ROLE_KEY[inv.role])}
                   </span>
                   <button
                     onClick={() => revokeInvitation(inv.id)}
                     className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-status-red"
-                    aria-label="Отозвать приглашение"
+                    aria-label={t("members.revokeAria")}
                   >
                     <X size={17} />
                   </button>

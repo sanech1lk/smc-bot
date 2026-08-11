@@ -4,10 +4,10 @@ import { useState, type FormEvent } from "react";
 import { signOut } from "next-auth/react";
 import { Download, KeyRound, Trash2 } from "lucide-react";
 import { ErrorNote, InfoNote, SettingRow, SettingSection, Sheet } from "@/components/ui";
-
-const DELETE_CONFIRM_WORD = "УДАЛИТЬ";
+import { useLocale } from "@/components/locale-provider";
 
 export function AccountDangerZone() {
+  const { t } = useLocale();
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -27,7 +27,7 @@ export function AccountDangerZone() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      alert("Не удалось выгрузить данные. Попробуйте ещё раз.");
+      alert(t("accountDanger.exportError"));
     } finally {
       setExporting(false);
     }
@@ -35,25 +35,25 @@ export function AccountDangerZone() {
 
   return (
     <>
-      <SettingSection title="Аккаунт и данные">
+      <SettingSection title={t("accountDanger.title")}>
         <SettingRow
           icon={KeyRound}
-          title="Сменить пароль"
-          description="Понадобится текущий пароль"
+          title={t("accountDanger.changePasswordTitle")}
+          description={t("accountDanger.changePasswordDescription")}
           control={<span className="text-sm text-text-muted">→</span>}
           onClick={() => setPasswordOpen(true)}
         />
         <SettingRow
           icon={Download}
-          title="Выгрузить мои данные"
-          description="Сообщения, фото, задачи и смены — файлом JSON"
+          title={t("accountDanger.exportTitle")}
+          description={t("accountDanger.exportDescription")}
           control={<span className="text-sm text-text-muted">{exporting ? "…" : "→"}</span>}
           onClick={exporting ? undefined : handleExport}
         />
         <SettingRow
           icon={Trash2}
-          title="Удалить аккаунт"
-          description="Личные данные удаляются безвозвратно"
+          title={t("accountDanger.deleteAccountTitle")}
+          description={t("accountDanger.deleteAccountDescription")}
           control={<span className="text-sm text-status-red">→</span>}
           onClick={() => setDeleteOpen(true)}
         />
@@ -73,6 +73,7 @@ export function AccountDangerZone() {
 }
 
 function PasswordSheet({ onClose }: { onClose: () => void }) {
+  const { t } = useLocale();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -85,7 +86,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
     setError(null);
 
     if (newPassword !== confirmPassword) {
-      setError("Пароли не совпадают");
+      setError(t("accountDanger.passwordMismatch"));
       return;
     }
 
@@ -99,7 +100,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось сменить пароль");
+      setError(data.error ?? t("accountDanger.errorChangePassword"));
       return;
     }
     setDone(true);
@@ -107,13 +108,13 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet onClose={onClose}>
-      <h3 className="text-lg font-bold">Смена пароля</h3>
+      <h3 className="text-lg font-bold">{t("accountDanger.passwordSheetTitle")}</h3>
 
       {done ? (
         <>
-          <InfoNote>Пароль изменён.</InfoNote>
+          <InfoNote>{t("accountDanger.passwordChanged")}</InfoNote>
           <button className="btn-primary mt-4 w-full" onClick={onClose}>
-            Готово
+            {t("common.done")}
           </button>
         </>
       ) : (
@@ -121,7 +122,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
           <input
             className="input"
             type="password"
-            placeholder="Текущий пароль"
+            placeholder={t("accountDanger.currentPasswordPlaceholder")}
             autoComplete="current-password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -130,7 +131,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
           <input
             className="input"
             type="password"
-            placeholder="Новый пароль"
+            placeholder={t("accountDanger.newPasswordPlaceholder")}
             autoComplete="new-password"
             minLength={6}
             value={newPassword}
@@ -140,7 +141,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
           <input
             className="input"
             type="password"
-            placeholder="Повторите новый пароль"
+            placeholder={t("accountDanger.confirmPasswordPlaceholder")}
             autoComplete="new-password"
             minLength={6}
             value={confirmPassword}
@@ -149,7 +150,7 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
           />
           {error && <ErrorNote>{error}</ErrorNote>}
           <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading ? "Сохраняем…" : "Сменить пароль"}
+            {loading ? t("accountDanger.savingPassword") : t("accountDanger.submitChangePassword")}
           </button>
         </form>
       )}
@@ -158,10 +159,12 @@ function PasswordSheet({ onClose }: { onClose: () => void }) {
 }
 
 function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void; onDeleted: () => void }) {
+  const { t } = useLocale();
+  const deleteConfirmWord = t("accountDanger.deleteConfirmWord");
   const [confirmText, setConfirmText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const canDelete = confirmText.trim().toUpperCase() === DELETE_CONFIRM_WORD;
+  const canDelete = confirmText.trim().toUpperCase() === deleteConfirmWord;
 
   async function handleDelete() {
     if (!canDelete) return;
@@ -172,7 +175,7 @@ function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void; onDel
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось удалить аккаунт");
+      setError(data.error ?? t("accountDanger.errorDelete"));
       return;
     }
     onDeleted();
@@ -180,33 +183,26 @@ function DeleteAccountSheet({ onClose, onDeleted }: { onClose: () => void; onDel
 
   return (
     <Sheet onClose={onClose}>
-      <h3 className="text-lg font-bold text-status-red">Удалить аккаунт</h3>
-      <p className="mt-2 text-text-secondary">
-        Имя, email и телефон будут удалены безвозвратно, войти в этот аккаунт станет невозможно.
-        Сообщения и фото, которые вы добавили в объекты, останутся у команды — как записи от
-        удалённого пользователя.
-      </p>
-      <p className="mt-2 text-sm text-text-muted">
-        Если вы единственный администратор на каком-то объекте, сначала назначьте там другого
-        администратора — иначе удаление будет отклонено.
-      </p>
+      <h3 className="text-lg font-bold text-status-red">{t("accountDanger.deleteSheetTitle")}</h3>
+      <p className="mt-2 text-text-secondary">{t("accountDanger.deleteBody1")}</p>
+      <p className="mt-2 text-sm text-text-muted">{t("accountDanger.deleteBody2")}</p>
       <p className="mt-4 text-sm font-medium">
-        Введите «{DELETE_CONFIRM_WORD}», чтобы подтвердить:
+        {t("accountDanger.deleteConfirmPrompt", { word: deleteConfirmWord })}
       </p>
       <input
         className="input mt-2"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
-        placeholder={DELETE_CONFIRM_WORD}
+        placeholder={deleteConfirmWord}
         autoCapitalize="characters"
       />
       {error && <ErrorNote>{error}</ErrorNote>}
       <div className="mt-4 flex gap-2">
         <button className="btn-secondary flex-1" onClick={onClose}>
-          Отмена
+          {t("common.cancel")}
         </button>
         <button className="btn-danger flex-1" onClick={handleDelete} disabled={!canDelete || loading}>
-          {loading ? "Удаляем…" : "Удалить"}
+          {loading ? t("accountDanger.deleting") : t("accountDanger.deleteCta")}
         </button>
       </div>
     </Sheet>

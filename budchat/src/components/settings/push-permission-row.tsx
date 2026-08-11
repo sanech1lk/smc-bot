@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BellRing } from "lucide-react";
 import { SettingRow, Switch } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import {
   getPushSubscriptionStatus,
   isPushSupported,
@@ -10,9 +11,16 @@ import {
   unsubscribeFromPush
 } from "@/lib/push-client";
 
+const ERROR_KEY: Record<string, string> = {
+  unsupported: "pushPermission.errorUnsupported",
+  permissionDenied: "pushPermission.errorPermissionDenied",
+  notConfigured: "pushPermission.errorNotConfigured"
+};
+
 /** Browser-level permission: separate from the per-category toggles above,
  *  since this is what actually lets a push reach the device at all. */
 export function PushPermissionRow() {
+  const { t } = useLocale();
   const [status, setStatus] = useState<"loading" | "subscribed" | "unsubscribed" | "unsupported">("loading");
   const [busy, setBusy] = useState(false);
 
@@ -36,7 +44,7 @@ export function PushPermissionRow() {
       if (result.ok) {
         setStatus("subscribed");
       } else {
-        if (result.error) alert(result.error);
+        alert(t(ERROR_KEY[result.errorCode]));
         setStatus("unsubscribed");
       }
     }
@@ -46,13 +54,13 @@ export function PushPermissionRow() {
   return (
     <SettingRow
       icon={BellRing}
-      title="Push-уведомления на устройство"
-      description={status === "loading" ? "Проверяем…" : "Приходят, даже если приложение закрыто"}
+      title={t("pushPermission.title")}
+      description={status === "loading" ? t("pushPermission.checking") : t("pushPermission.description")}
       control={
         <Switch
           checked={status === "subscribed"}
           disabled={busy || status === "loading"}
-          label="Push-уведомления на устройство"
+          label={t("pushPermission.title")}
           onChange={handleToggle}
         />
       }

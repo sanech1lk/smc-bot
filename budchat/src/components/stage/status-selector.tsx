@@ -1,6 +1,7 @@
 "use client";
 
-import { STAGE_STATUS_META } from "@/lib/stages";
+import { STAGE_STATUS_KEY, STAGE_STATUS_META } from "@/lib/stages";
+import { useLocale } from "@/components/locale-provider";
 import type { StageStatus } from "@/types/models";
 
 const ORDER: StageStatus[] = ["NOT_STARTED", "IN_PROGRESS", "DONE", "PROBLEM"];
@@ -14,6 +15,8 @@ export function StatusSelector({
   onChange: (status: StageStatus) => void;
   disabled?: boolean;
 }) {
+  const { t } = useLocale();
+
   return (
     <div className="flex gap-2 overflow-x-auto border-b border-border px-4 py-2.5">
       {ORDER.map((status) => {
@@ -30,7 +33,7 @@ export function StatusSelector({
             aria-pressed={active}
           >
             <span className={`status-dot ${meta.dot}`} />
-            {meta.label}
+            {t(STAGE_STATUS_KEY[status])}
           </button>
         );
       })}

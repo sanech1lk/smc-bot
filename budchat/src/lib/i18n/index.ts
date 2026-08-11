@@ -22,6 +22,22 @@ export const DEFAULT_LOCALE: LocaleCode = "ru";
 
 export const LOCALE_STORAGE_KEY = "budchat-locale";
 
+/** BCP-47 tag for native `Intl`/`toLocaleDateString` calls — a different
+ *  concern from the date-fns locale objects in date-fns-locale.ts, but the
+ *  same mapping in spirit. */
+const BCP_47_TAG: Record<LocaleCode, string> = {
+  ru: "ru-RU",
+  en: "en-US",
+  pl: "pl-PL",
+  uk: "uk-UA",
+  de: "de-DE",
+  cs: "cs-CZ"
+};
+
+export function bcp47Tag(locale: LocaleCode): string {
+  return BCP_47_TAG[locale];
+}
+
 export function isLocaleCode(value: unknown): value is LocaleCode {
   return typeof value === "string" && SUPPORTED_LOCALES.some((l) => l.code === value);
 }

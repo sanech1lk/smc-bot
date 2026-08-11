@@ -29,6 +29,7 @@ import { MaterialsPanel } from "@/components/project/materials-panel";
 import { DocumentsPanel } from "@/components/project/documents-panel";
 import { ClientPortal } from "@/components/project/client-portal";
 import { ErrorNote, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { ProjectMemberSummary, ProjectRole, StageSummary, VisitSummary } from "@/types/models";
 
 type Tab =
@@ -44,18 +45,46 @@ type Tab =
   | "calendar"
   | "members";
 
-const TABS: { id: Tab; label: string; icon: typeof Layers }[] = [
-  { id: "portal", label: "Обзор", icon: UserCircle },
-  { id: "stages", label: "Этапы", icon: Layers },
-  { id: "logs", label: "Журнал", icon: FileText },
-  { id: "changes", label: "Допы", icon: ScrollText },
-  { id: "punch", label: "Дефекты", icon: ClipboardCheck },
-  { id: "shifts", label: "Смены", icon: Clock },
-  { id: "materials", label: "Материалы", icon: Package },
-  { id: "documents", label: "Документы", icon: FolderOpen },
-  { id: "plan", label: "План", icon: Map },
-  { id: "calendar", label: "Календарь", icon: CalendarDays },
-  { id: "members", label: "Участники", icon: Users }
+const TAB_ICON: Record<Tab, typeof Layers> = {
+  portal: UserCircle,
+  stages: Layers,
+  logs: FileText,
+  changes: ScrollText,
+  punch: ClipboardCheck,
+  shifts: Clock,
+  materials: Package,
+  documents: FolderOpen,
+  plan: Map,
+  calendar: CalendarDays,
+  members: Users
+};
+
+const TAB_KEY: Record<Tab, string> = {
+  portal: "projectDetail.tabPortal",
+  stages: "projectDetail.tabStages",
+  logs: "projectDetail.tabLogs",
+  changes: "projectDetail.tabChanges",
+  punch: "projectDetail.tabPunch",
+  shifts: "projectDetail.tabShifts",
+  materials: "projectDetail.tabMaterials",
+  documents: "projectDetail.tabDocuments",
+  plan: "projectDetail.tabPlan",
+  calendar: "projectDetail.tabCalendar",
+  members: "projectDetail.tabMembers"
+};
+
+const TAB_ORDER: Tab[] = [
+  "portal",
+  "stages",
+  "logs",
+  "changes",
+  "punch",
+  "shifts",
+  "materials",
+  "documents",
+  "plan",
+  "calendar",
+  "members"
 ];
 
 // The customer only needs the curated view plus the shared records; the
@@ -73,6 +102,7 @@ interface ProjectDetail {
 }
 
 export default function ProjectDetailPage() {
+  const { t } = useLocale();
   const params = useParams<{ id: string }>();
   const projectId = params.id;
 
@@ -85,7 +115,7 @@ export default function ProjectDetailPage() {
   const loadProject = useCallback(async () => {
     const res = await fetch(`/api/projects/${projectId}`);
     if (!res.ok) {
-      setError("Не удалось загрузить объект");
+      setError(t("projectDetail.errorLoad"));
       return;
     }
     const data = await res.json();
@@ -94,7 +124,7 @@ export default function ProjectDetailPage() {
     setVisits(data.project.visits ?? []);
     // The customer lands on their own overview rather than the crew's stage list.
     if (data.myRole === "CLIENT") setTab((current) => (current === "stages" ? "portal" : current));
-  }, [projectId]);
+  }, [projectId, t]);
 
   useEffect(() => {
     loadProject();
@@ -108,7 +138,7 @@ export default function ProjectDetailPage() {
   if (error) {
     return (
       <div>
-        <TopBar title="Объект" backHref="/projects" />
+        <TopBar title={t("projectDetail.fallbackTitle")} backHref="/projects" />
         <div className="p-6">
           <ErrorNote>{error}</ErrorNote>
         </div>
@@ -119,7 +149,7 @@ export default function ProjectDetailPage() {
   if (!project) {
     return (
       <div>
-        <TopBar title="Объект" backHref="/projects" />
+        <TopBar title={t("projectDetail.fallbackTitle")} backHref="/projects" />
         <div className="px-4 py-4">
           <SkeletonList rows={5} height="h-16" />
         </div>
@@ -127,27 +157,30 @@ export default function ProjectDetailPage() {
     );
   }
 
-  const visibleTabs = myRole === "CLIENT" ? TABS.filter((t) => CLIENT_TABS.includes(t.id)) : TABS;
+  const visibleTabs = myRole === "CLIENT" ? TAB_ORDER.filter((id) => CLIENT_TABS.includes(id)) : TAB_ORDER;
 
   return (
     <div className="pb-10">
       <TopBar title={project.name} subtitle={project.address} backHref="/projects" />
 
       <div className="sticky top-[calc(4.75rem+env(safe-area-inset-top))] z-20 flex gap-2 overflow-x-auto border-b border-border bg-bg/85 px-4 py-2 backdrop-blur-xl">
-        {visibleTabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
-              tab === id
-                ? "bg-brand text-white shadow-card"
-                : "bg-bg-card text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
+        {visibleTabs.map((id) => {
+          const Icon = TAB_ICON[id];
+          return (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex flex-shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
+                tab === id
+                  ? "bg-brand text-white shadow-card"
+                  : "bg-bg-card text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Icon size={16} />
+              {t(TAB_KEY[id])}
+            </button>
+          );
+        })}
       </div>
 
       <div key={tab} className="animate-in px-4 py-4">

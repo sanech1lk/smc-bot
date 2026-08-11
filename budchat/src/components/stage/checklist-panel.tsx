@@ -6,6 +6,7 @@ import { useStageSocket } from "@/lib/use-stage-socket";
 import { SignaturePad } from "@/components/stage/signature-pad";
 import { Check, ListChecks, Plus, Trash2 } from "lucide-react";
 import { EmptyState, ErrorNote } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { ChecklistItemSummary, ProjectRole, SignatureSummary } from "@/types/models";
 
 export function ChecklistPanel({
@@ -17,6 +18,7 @@ export function ChecklistPanel({
   myRole: ProjectRole;
   currentUserName: string;
 }) {
+  const { t } = useLocale();
   const [items, setItems] = useState<ChecklistItemSummary[]>([]);
   const [signatures, setSignatures] = useState<SignatureSummary[]>([]);
   const [newText, setNewText] = useState("");
@@ -97,7 +99,7 @@ export function ChecklistPanel({
   async function handleSignature(dataUrl: string) {
     setError(null);
     if (!signerName.trim()) {
-      setError("Введите имя подписавшего");
+      setError(t("checklist.errorSignerRequired"));
       return;
     }
     setSaving(true);
@@ -109,7 +111,7 @@ export function ChecklistPanel({
     setSaving(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось сохранить подпись");
+      setError(data.error ?? t("checklist.errorSaveSignature"));
       return;
     }
     const data = await res.json();
@@ -120,9 +122,7 @@ export function ChecklistPanel({
 
   return (
     <div className="px-4 py-4 pb-24 lg:pb-6">
-      <p className="mb-3 text-text-secondary">
-        Отметьте пункты приёмки этапа. Когда всё готово — заказчик подписывает акт пальцем на экране.
-      </p>
+      <p className="mb-3 text-text-secondary">{t("checklist.intro")}</p>
 
       <div className="space-y-2">
         {items.map((item) => (
@@ -132,7 +132,7 @@ export function ChecklistPanel({
               className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border-2 text-lg ${
                 item.checked ? "border-status-green bg-status-green/20 text-status-green" : "border-border-soft"
               }`}
-              aria-label={item.checked ? "Снять отметку" : "Отметить выполненным"}
+              aria-label={item.checked ? t("checklist.uncheckAria") : t("checklist.checkAria")}
             >
               {item.checked && <Check size={18} strokeWidth={3} />}
             </button>
@@ -141,7 +141,7 @@ export function ChecklistPanel({
               <button
                 onClick={() => handleRemove(item.id)}
                 className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-status-red active:bg-status-red/10"
-                aria-label={`Удалить пункт «${item.text}»`}
+                aria-label={t("checklist.deleteItemAria", { text: item.text })}
               >
                 <Trash2 size={16} />
               </button>
@@ -151,45 +151,54 @@ export function ChecklistPanel({
         {items.length === 0 && (
           <EmptyState
             icon={ListChecks}
-            title="Чек-лист пуст"
-            description={canEditList ? "Добавьте пункты приёмки, которые проверит заказчик." : undefined}
+            title={t("checklist.emptyTitle")}
+            description={canEditList ? t("checklist.emptyDescription") : undefined}
           />
         )}
       </div>
 
       {canEditList && (
         <form onSubmit={handleAdd} className="mt-3 flex gap-2">
-          <input className="input flex-1" placeholder="Новый пункт чек-листа" value={newText} onChange={(e) => setNewText(e.target.value)} />
-          <button type="submit" className="btn-secondary px-4" aria-label="Добавить пункт">
+          <input
+            className="input flex-1"
+            placeholder={t("checklist.newItemPlaceholder")}
+            value={newText}
+            onChange={(e) => setNewText(e.target.value)}
+          />
+          <button type="submit" className="btn-secondary px-4" aria-label={t("checklist.addAria")}>
             <Plus size={18} />
           </button>
         </form>
       )}
 
       <div className="card mt-6">
-        <p className="mb-3 font-semibold">Подпись заказчика (приёмка этапа)</p>
+        <p className="mb-3 font-semibold">{t("checklist.signatureTitle")}</p>
         {!allChecked && (
           <p className="mb-3 rounded-xl bg-status-yellow/10 px-3 py-2 text-sm text-status-yellow">
-            Не все пункты чек-листа отмечены — подпись всё равно можно поставить, если заказчик согласен.
+            {t("checklist.notAllCheckedWarning")}
           </p>
         )}
         <input
           className="input mb-3"
-          placeholder="ФИО подписавшего"
+          placeholder={t("checklist.signerNamePlaceholder")}
           value={signerName}
           onChange={(e) => setSignerName(e.target.value)}
         />
         {error && <div className="mb-3"><ErrorNote>{error}</ErrorNote></div>}
         <SignaturePad onSave={handleSignature} />
-        {saving && <p className="mt-2 text-center text-text-secondary">Сохраняем подпись…</p>}
+        {saving && <p className="mt-2 text-center text-text-secondary">{t("checklist.savingSignature")}</p>}
       </div>
 
       {signatures.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="font-semibold">История подписей</p>
+          <p className="font-semibold">{t("checklist.historyTitle")}</p>
           {signatures.map((sig) => (
             <div key={sig.id} className="card flex items-center gap-3">
-              <img src={sig.imageData} alt="Подпись" className="h-12 w-24 rounded-lg bg-bg-soft object-contain" />
+              <img
+                src={sig.imageData}
+                alt={t("checklist.signatureAlt")}
+                className="h-12 w-24 rounded-lg bg-bg-soft object-contain"
+              />
               <div>
                 <p className="font-semibold">{sig.signerName}</p>
                 <p className="text-sm text-text-muted">{format(new Date(sig.createdAt), "dd.MM.yyyy HH:mm")}</p>

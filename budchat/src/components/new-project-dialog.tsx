@@ -107,7 +107,7 @@ export function NewProjectDialog({
             <select className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
-                  {c.symbol} — {c.label} ({c.code})
+                  {c.symbol} — {t(`currencyName.${c.code}`)} ({c.code})
                 </option>
               ))}
             </select>

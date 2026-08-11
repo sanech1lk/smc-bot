@@ -6,12 +6,13 @@ import { BarChart3, FileDown, History, LayoutTemplate, Plus, Sparkles, Trash2, X
 import { useStageSocket } from "@/lib/use-stage-socket";
 import { formatAmount, getCurrency } from "@/lib/currency";
 import { EmptyState, ErrorNote, Skeleton, SkeletonList, SkeletonTable } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import type { EstimateHistoryEntry, EstimateItem, ProjectRole } from "@/types/models";
 
-const ACTION_LABEL: Record<EstimateHistoryEntry["action"], string> = {
-  created: "Добавлено",
-  updated: "Изменено",
-  deleted: "Удалено"
+const ACTION_KEY: Record<EstimateHistoryEntry["action"], string> = {
+  created: "estimateAction.created",
+  updated: "estimateAction.updated",
+  deleted: "estimateAction.deleted"
 };
 
 interface TemplateSummary {
@@ -32,6 +33,7 @@ export function EstimatePanel({
   stageName: string;
   myRole: ProjectRole;
 }) {
+  const { t } = useLocale();
   const [items, setItems] = useState<EstimateItem[]>([]);
   const [currency, setCurrency] = useState("RUB");
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export function EstimatePanel({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Удалить позицию сметы?")) return;
+    if (!confirm(t("estimate.deleteConfirm"))) return;
     const res = await fetch(`/api/estimate/${id}`, { method: "DELETE" });
     if (res.ok) setItems((prev) => prev.filter((i) => i.id !== id));
   }
@@ -101,7 +103,7 @@ export function EstimatePanel({
     <div className="px-4 py-4 pb-24 lg:pb-6">
       <div className="card mb-3 flex items-center justify-between">
         <div>
-          <p className="label">Итого по этапу</p>
+          <p className="label">{t("estimate.totalForStage")}</p>
           {/* Until the fetch resolves we don't know the amount or even the
               currency, so show a placeholder rather than a misleading "0". */}
           {loading ? (
@@ -120,23 +122,19 @@ export function EstimatePanel({
       ) : items.length === 0 ? (
         <EmptyState
           icon={BarChart3}
-          title="Смета пуста"
-          description={
-            canEdit
-              ? "Добавьте позиции вручную или возьмите готовый шаблон по типу работ."
-              : "Подрядчик ещё не заполнил смету этого этапа."
-          }
+          title={t("estimate.emptyTitle")}
+          description={canEdit ? t("estimate.emptyDescriptionEditable") : t("estimate.emptyDescriptionReadonly")}
         />
       ) : (
         <div className="card mb-3 overflow-x-auto">
           <table className="w-full min-w-[520px] text-left text-sm">
             <thead>
               <tr className="text-text-muted">
-                <th className="pb-2 font-semibold">Наименование</th>
-                <th className="pb-2 font-semibold">Ед.</th>
-                <th className="pb-2 text-right font-semibold">Кол-во</th>
-                <th className="pb-2 text-right font-semibold">Цена</th>
-                <th className="pb-2 text-right font-semibold">Сумма</th>
+                <th className="pb-2 font-semibold">{t("estimate.colName")}</th>
+                <th className="pb-2 font-semibold">{t("estimate.colUnit")}</th>
+                <th className="pb-2 text-right font-semibold">{t("estimate.colQty")}</th>
+                <th className="pb-2 text-right font-semibold">{t("estimate.colPrice")}</th>
+                <th className="pb-2 text-right font-semibold">{t("estimate.colSum")}</th>
                 {canEdit && <th className="pb-2" />}
               </tr>
             </thead>
@@ -159,7 +157,7 @@ export function EstimatePanel({
                       <button
                         onClick={() => handleDelete(item.id)}
                         className="text-text-muted transition-colors hover:text-status-red"
-                        aria-label={`Удалить ${item.itemName}`}
+                        aria-label={t("estimate.deleteItemAria", { name: item.itemName })}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -171,7 +169,7 @@ export function EstimatePanel({
             <tfoot>
               <tr className="border-t-2 border-border">
                 <td colSpan={4} className="py-2.5 font-bold">
-                  Итого
+                  {t("estimate.totalRow")}
                 </td>
                 <td className="py-2.5 text-right text-base font-bold tabular-nums text-brand">
                   {formatAmount(total, currency)} {symbol}
@@ -188,17 +186,17 @@ export function EstimatePanel({
           <>
             <button className="btn-secondary" onClick={() => setFormOpen((v) => !v)}>
               {formOpen ? <X size={17} /> : <Plus size={17} />}
-              {formOpen ? "Отмена" : "Позиция"}
+              {formOpen ? t("common.cancel") : t("estimate.positionCta")}
             </button>
             <button className="btn-secondary" onClick={() => setTemplatesOpen((v) => !v)}>
               <LayoutTemplate size={17} />
-              Шаблон
+              {t("estimate.templateCta")}
             </button>
           </>
         )}
         <button className="btn-ghost border border-border" onClick={loadHistory}>
           <History size={17} />
-          История
+          {t("estimate.historyCta")}
         </button>
         <a
           href={`/api/stages/${stageId}/estimate/pdf`}
@@ -233,14 +231,14 @@ export function EstimatePanel({
 
       {historyOpen && (
         <div className="animate-in mt-4">
-          <p className="label mb-2">История изменений</p>
+          <p className="label mb-2">{t("estimate.historyTitle")}</p>
           <div className="space-y-2">
-            {history.length === 0 && <p className="text-text-secondary">Изменений пока нет</p>}
+            {history.length === 0 && <p className="text-text-secondary">{t("estimate.historyEmpty")}</p>}
             {history.map((h) => (
               <div key={h.id} className="card py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate font-semibold">{h.itemName}</span>
-                  <span className="flex-shrink-0 text-sm text-text-secondary">{ACTION_LABEL[h.action]}</span>
+                  <span className="flex-shrink-0 text-sm text-text-secondary">{t(ACTION_KEY[h.action])}</span>
                 </div>
                 <p className="text-sm text-text-secondary">
                   {formatAmount(h.quantity, currency)} {h.unit} × {formatAmount(h.unitPrice, currency)} ={" "}
@@ -269,6 +267,7 @@ function TemplatePicker({
   currency: string;
   onApplied: (items: EstimateItem[]) => void;
 }) {
+  const { t } = useLocale();
   const [templates, setTemplates] = useState<TemplateSummary[] | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const symbol = getCurrency(currency).symbol;
@@ -297,44 +296,42 @@ function TemplatePicker({
 
   return (
     <div className="animate-in mt-3">
-      <p className="label mb-2">Шаблоны для «{stageName}»</p>
+      <p className="label mb-2">{t("estimate.templatesTitle", { stage: stageName })}</p>
       {templates === null ? (
         <SkeletonList rows={3} height="h-20" />
       ) : (
         <div className="space-y-2">
-          {templates.map((t) => (
-            <div key={t.id} className="card">
+          {templates.map((tpl) => (
+            <div key={tpl.id} className="card">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 font-semibold">
-                    {t.suggested && <Sparkles size={14} className="flex-shrink-0 text-brand" />}
-                    <span className="truncate">{t.name}</span>
+                    {tpl.suggested && <Sparkles size={14} className="flex-shrink-0 text-brand" />}
+                    <span className="truncate">{tpl.name}</span>
                   </p>
-                  <p className="mt-0.5 text-sm text-text-secondary">{t.description}</p>
+                  <p className="mt-0.5 text-sm text-text-secondary">{tpl.description}</p>
                 </div>
                 <span className="flex-shrink-0 text-sm tabular-nums text-text-muted">
-                  {t.itemCount} поз.
+                  {tpl.itemCount} {t("estimate.itemCountSuffix")}
                 </span>
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-text-secondary">
-                  ≈ {formatAmount(t.total, currency)} {symbol}
+                  ≈ {formatAmount(tpl.total, currency)} {symbol}
                 </span>
                 <button
                   className="btn-secondary px-4 py-2 text-sm"
-                  onClick={() => apply(t.id)}
+                  onClick={() => apply(tpl.id)}
                   disabled={applying !== null}
                 >
-                  {applying === t.id ? "Добавляем…" : "Применить"}
+                  {applying === tpl.id ? t("estimate.applying") : t("estimate.applyCta")}
                 </button>
               </div>
             </div>
           ))}
         </div>
       )}
-      <p className="mt-2 text-xs text-text-muted">
-        Позиции добавляются к текущей смете — количество и цены после этого можно поправить.
-      </p>
+      <p className="mt-2 text-xs text-text-muted">{t("estimate.templatesNote")}</p>
     </div>
   );
 }
@@ -348,6 +345,7 @@ function NewEstimateForm({
   currency: string;
   onCreated: (item: EstimateItem) => void;
 }) {
+  const { t } = useLocale();
   const [itemName, setItemName] = useState("");
   const [unit, setUnit] = useState("шт");
   const [quantity, setQuantity] = useState("1");
@@ -377,7 +375,7 @@ function NewEstimateForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось добавить позицию");
+      setError(data.error ?? t("estimate.errorAdd"));
       return;
     }
 
@@ -393,19 +391,24 @@ function NewEstimateForm({
     <form onSubmit={handleSubmit} className="animate-in card mt-3 space-y-3">
       <input
         className="input"
-        placeholder="Наименование работ/материала"
+        placeholder={t("estimate.namePlaceholder")}
         required
         value={itemName}
         onChange={(e) => setItemName(e.target.value)}
       />
       <div className="grid grid-cols-3 gap-2">
-        <input className="input" placeholder="Ед." value={unit} onChange={(e) => setUnit(e.target.value)} />
+        <input
+          className="input"
+          placeholder={t("estimate.unitPlaceholder")}
+          value={unit}
+          onChange={(e) => setUnit(e.target.value)}
+        />
         <input
           className="input"
           type="number"
           min="0"
           step="0.01"
-          placeholder="Кол-во"
+          placeholder={t("estimate.qtyPlaceholder")}
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
         />
@@ -414,13 +417,13 @@ function NewEstimateForm({
           type="number"
           min="0"
           step="0.01"
-          placeholder="Цена"
+          placeholder={t("estimate.pricePlaceholder")}
           value={unitPrice}
           onChange={(e) => setUnitPrice(e.target.value)}
         />
       </div>
       <p className="text-text-secondary">
-        Сумма:{" "}
+        {t("estimate.sumLabel")}{" "}
         <span className="font-semibold tabular-nums text-text-primary">
           {formatAmount(total, currency)} {symbol}
         </span>
@@ -428,7 +431,7 @@ function NewEstimateForm({
       {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         <Plus size={18} />
-        {loading ? "Добавляем…" : "Добавить в смету"}
+        {loading ? t("estimate.adding") : t("estimate.addCta")}
       </button>
     </form>
   );

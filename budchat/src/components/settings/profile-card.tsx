@@ -4,10 +4,12 @@ import { useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { Pencil } from "lucide-react";
 import { Avatar, ErrorNote } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 
 /** Name and phone, editable inline. Email is shown but never changes here —
  *  it is the sign-in identity and changing it needs its own verified flow. */
 export function ProfileCard() {
+  const { t } = useLocale();
   const { data: session, update: updateSession } = useSession();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(session?.user?.name ?? "");
@@ -31,7 +33,7 @@ export function ProfileCard() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось сохранить");
+      setError(data.error ?? t("profileCard.errorSave"));
       return;
     }
     await updateSession({ name: name.trim(), phone: phone.trim() || undefined });
@@ -45,7 +47,7 @@ export function ProfileCard() {
           className="input"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Имя"
+          placeholder={t("profileCard.namePlaceholder")}
           required
           minLength={2}
         />
@@ -53,13 +55,13 @@ export function ProfileCard() {
           className="input"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="Телефон (необязательно)"
+          placeholder={t("profileCard.phonePlaceholder")}
           type="tel"
         />
         {error && <ErrorNote>{error}</ErrorNote>}
         <div className="flex gap-2">
           <button type="submit" className="btn-primary flex-1" disabled={saving}>
-            {saving ? "Сохраняем…" : "Сохранить"}
+            {saving ? t("profileCard.saving") : t("common.save")}
           </button>
           <button
             type="button"
@@ -71,7 +73,7 @@ export function ProfileCard() {
               setPhone(session.user.phone ?? "");
             }}
           >
-            Отмена
+            {t("common.cancel")}
           </button>
         </div>
       </form>
@@ -89,7 +91,7 @@ export function ProfileCard() {
       <button
         onClick={() => setEditing(true)}
         className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-bg-elevated text-text-secondary active:scale-95"
-        aria-label="Изменить профиль"
+        aria-label={t("profileCard.editAria")}
       >
         <Pencil size={16} />
       </button>

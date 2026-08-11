@@ -2,16 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { format, isSameDay, isToday, isYesterday } from "date-fns";
-import { ru } from "date-fns/locale";
 import { useSession } from "next-auth/react";
 import { useStageSocket } from "@/lib/use-stage-socket";
 import { useSettings } from "@/components/settings-provider";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import { MicButton } from "@/components/mic-button";
 import { Clock3, MessageCircle, SendHorizontal } from "lucide-react";
 import { Avatar, EmptyState, SkeletonChat } from "@/components/ui";
 import { enqueueOutboxItem, getAllOutboxItems, type OutboxMessageItem } from "@/lib/outbox";
 import { useOutboxFlush } from "@/lib/use-outbox-flush";
 import type { MessageSummary } from "@/types/models";
+import type { LocaleCode } from "@/lib/i18n";
 
 type ChatMessage = MessageSummary & { pending?: boolean };
 
@@ -26,17 +28,22 @@ interface RenderedMessage {
   daySeparator: string | null;
 }
 
-function dayLabel(date: Date) {
-  if (isToday(date)) return "Сегодня";
-  if (isYesterday(date)) return "Вчера";
-  return format(date, "d MMMM", { locale: ru });
+function dayLabel(date: Date, locale: LocaleCode, todayLabel: string, yesterdayLabel: string) {
+  if (isToday(date)) return todayLabel;
+  if (isYesterday(date)) return yesterdayLabel;
+  return format(date, "d MMMM", { locale: dateFnsLocale(locale) });
 }
 
 /**
  * Groups consecutive messages from the same author (within 5 minutes) so the
  * name and timestamp aren't repeated on every line, and inserts day separators.
  */
-function groupMessages(messages: ChatMessage[]): RenderedMessage[] {
+function groupMessages(
+  messages: ChatMessage[],
+  locale: LocaleCode,
+  todayLabel: string,
+  yesterdayLabel: string
+): RenderedMessage[] {
   const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
   return messages.map((message, i) => {
@@ -60,13 +67,14 @@ function groupMessages(messages: ChatMessage[]): RenderedMessage[] {
       message,
       startsGroup: !sameAsPrev,
       endsGroup: !sameAsNext,
-      daySeparator: newDay ? dayLabel(at) : null
+      daySeparator: newDay ? dayLabel(at, locale, todayLabel, yesterdayLabel) : null
     };
   });
 }
 
 export function ChatPanel({ stageId, currentUserId }: { stageId: string; currentUserId: string }) {
   const { data: session } = useSession();
+  const { locale, t } = useLocale();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -92,7 +100,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
           content: i.content,
           type: "TEXT",
           createdAt: new Date(i.createdAt).toISOString(),
-          sender: { id: currentUserId, name: session?.user.name ?? "Вы" },
+          sender: { id: currentUserId, name: session?.user.name ?? t("chat.youFallback") },
           pending: true
         }));
 
@@ -145,7 +153,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  const rendered = useMemo(() => groupMessages(messages), [messages]);
+  const rendered = useMemo(() => groupMessages(messages, locale, t("common.today"), t("common.yesterday")), [messages, locale, t]);
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
@@ -189,7 +197,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
         content,
         type: "TEXT",
         createdAt: new Date().toISOString(),
-        sender: { id: currentUserId, name: session?.user.name ?? "Вы" },
+        sender: { id: currentUserId, name: session?.user.name ?? t("chat.youFallback") },
         pending: true
       }
     ]);
@@ -200,11 +208,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {loading && <SkeletonChat />}
         {!loading && messages.length === 0 && (
-          <EmptyState
-            icon={MessageCircle}
-            title="Пока нет сообщений"
-            description="Начните обсуждение этапа — вся переписка останется привязана именно к нему."
-          />
+          <EmptyState icon={MessageCircle} title={t("chat.emptyTitle")} description={t("chat.emptyDescription")} />
         )}
 
         {rendered.map(({ message: m, startsGroup, endsGroup, daySeparator }) => {
@@ -250,7 +254,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
                       {m.pending ? (
                         <span className="inline-flex items-center gap-1">
                           <Clock3 size={11} />
-                          ждёт сети
+                          {t("chat.waitingForSignal")}
                         </span>
                       ) : (
                         format(new Date(m.createdAt), "HH:mm")
@@ -271,7 +275,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
       >
         <input
           className="input flex-1 rounded-2xl"
-          placeholder="Сообщение…"
+          placeholder={t("chat.placeholder")}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
@@ -280,7 +284,7 @@ export function ChatPanel({ stageId, currentUserId }: { stageId: string; current
           type="submit"
           className="btn-primary aspect-square w-12 !rounded-2xl !px-0"
           disabled={sending || !text.trim()}
-          aria-label="Отправить"
+          aria-label={t("chat.sendAria")}
         >
           <SendHorizontal size={19} />
         </button>

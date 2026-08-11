@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Package, Plus, Trash2, X } from "lucide-react";
 import { formatAmount, getCurrency } from "@/lib/currency";
 import { EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
 import { materialOverrun, materialProgressPercent } from "@/lib/field-ops";
 import type { MaterialSummary, ProjectRole, StageSummary } from "@/types/models";
 
@@ -16,6 +17,7 @@ export function MaterialsPanel({
   stages: StageSummary[];
   myRole: ProjectRole;
 }) {
+  const { t } = useLocale();
   const [materials, setMaterials] = useState<MaterialSummary[] | null>(null);
   const [plannedCost, setPlannedCost] = useState(0);
   const [usedCost, setUsedCost] = useState(0);
@@ -52,7 +54,7 @@ export function MaterialsPanel({
   }
 
   async function remove(id: string) {
-    if (!confirm("Удалить материал?")) return;
+    if (!confirm(t("materials.deleteConfirm"))) return;
     const res = await fetch(`/api/materials/${id}`, { method: "DELETE" });
     if (res.ok) load();
   }
@@ -63,13 +65,13 @@ export function MaterialsPanel({
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="card">
-          <p className="label">Запланировано</p>
+          <p className="label">{t("materials.plannedLabel")}</p>
           <p className="mt-1.5 text-xl font-bold tabular">
             {formatAmount(plannedCost, currency)} {symbol}
           </p>
         </div>
         <div className="card">
-          <p className="label">Израсходовано</p>
+          <p className="label">{t("materials.usedLabel")}</p>
           <p
             className={`mt-1.5 text-xl font-bold tabular ${
               usedCost > plannedCost ? "text-status-red" : "text-text-primary"
@@ -83,7 +85,7 @@ export function MaterialsPanel({
       {canEdit && (
         <button className="btn-secondary w-full" onClick={() => setFormOpen((v) => !v)}>
           {formOpen ? <X size={17} /> : <Plus size={17} />}
-          {formOpen ? "Отмена" : "Добавить материал"}
+          {formOpen ? t("common.cancel") : t("materials.addCta")}
         </button>
       )}
 
@@ -102,8 +104,8 @@ export function MaterialsPanel({
       {materials.length === 0 ? (
         <EmptyState
           icon={Package}
-          title="Материалов пока нет"
-          description={canEdit ? "Ведите план и фактический расход, чтобы видеть перерасход вовремя." : undefined}
+          title={t("materials.emptyTitle")}
+          description={canEdit ? t("materials.emptyDescription") : undefined}
         />
       ) : (
         <div className="space-y-2">
@@ -125,7 +127,7 @@ export function MaterialsPanel({
                     <button
                       onClick={() => remove(m.id)}
                       className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-status-red"
-                      aria-label={`Удалить ${m.name}`}
+                      aria-label={t("materials.deleteAria", { name: m.name })}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -148,7 +150,7 @@ export function MaterialsPanel({
 
                 {canEdit && (
                   <div className="mt-2.5 flex items-center gap-2">
-                    <label className="text-sm text-text-muted">Израсходовано:</label>
+                    <label className="text-sm text-text-muted">{t("materials.usedFieldLabel")}</label>
                     <input
                       className="input w-28 py-2 text-sm"
                       type="number"
@@ -183,6 +185,7 @@ function NewMaterialForm({
   currency: string;
   onCreated: () => void;
 }) {
+  const { t } = useLocale();
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("шт");
   const [quantityPlanned, setQuantityPlanned] = useState("0");
@@ -214,7 +217,7 @@ function NewMaterialForm({
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось добавить материал");
+      setError(data.error ?? t("materials.errorCreate"));
       return;
     }
     onCreated();
@@ -224,19 +227,24 @@ function NewMaterialForm({
     <form onSubmit={handleSubmit} className="animate-in card space-y-3">
       <input
         className="input"
-        placeholder="Название материала"
+        placeholder={t("materials.namePlaceholder")}
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
       <div className="grid grid-cols-3 gap-2">
-        <input className="input" placeholder="Ед." value={unit} onChange={(e) => setUnit(e.target.value)} />
+        <input
+          className="input"
+          placeholder={t("materials.unitPlaceholder")}
+          value={unit}
+          onChange={(e) => setUnit(e.target.value)}
+        />
         <input
           className="input"
           type="number"
           min="0"
           step="0.01"
-          placeholder="План"
+          placeholder={t("materials.plannedPlaceholder")}
           value={quantityPlanned}
           onChange={(e) => setQuantityPlanned(e.target.value)}
         />
@@ -245,19 +253,19 @@ function NewMaterialForm({
           type="number"
           min="0"
           step="0.01"
-          placeholder={`Цена, ${symbol}`}
+          placeholder={t("materials.pricePlaceholder", { symbol })}
           value={unitPrice}
           onChange={(e) => setUnitPrice(e.target.value)}
         />
       </div>
       <input
         className="input"
-        placeholder="Поставщик (необязательно)"
+        placeholder={t("materials.supplierPlaceholder")}
         value={supplier}
         onChange={(e) => setSupplier(e.target.value)}
       />
       <select className="input" value={stageId} onChange={(e) => setStageId(e.target.value)}>
-        <option value="">Без этапа</option>
+        <option value="">{t("materials.noStage")}</option>
         {stages.map((s) => (
           <option key={s.id} value={s.id}>
             {s.name}
@@ -266,7 +274,7 @@ function NewMaterialForm({
       </select>
       {error && <ErrorNote>{error}</ErrorNote>}
       <button type="submit" className="btn-primary w-full" disabled={loading}>
-        {loading ? "Добавляем…" : "Добавить"}
+        {loading ? t("materials.submitCreating") : t("materials.submit")}
       </button>
     </form>
   );

@@ -16,17 +16,21 @@ export async function getPushSubscriptionStatus(): Promise<"subscribed" | "unsub
   return subscription ? "subscribed" : "unsubscribed";
 }
 
-export async function subscribeToPush(): Promise<{ ok: boolean; error?: string }> {
-  if (!isPushSupported()) return { ok: false, error: "Push-уведомления не поддерживаются этим браузером" };
+export type PushSubscribeErrorCode = "unsupported" | "permissionDenied" | "notConfigured";
+
+export async function subscribeToPush(): Promise<
+  { ok: true } | { ok: false; errorCode: PushSubscribeErrorCode }
+> {
+  if (!isPushSupported()) return { ok: false, errorCode: "unsupported" };
 
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    return { ok: false, error: "Разрешение на уведомления не дано" };
+    return { ok: false, errorCode: "permissionDenied" };
   }
 
   const keyRes = await fetch("/api/push/vapid-public-key");
   if (!keyRes.ok) {
-    return { ok: false, error: "Push-уведомления не настроены на сервере" };
+    return { ok: false, errorCode: "notConfigured" };
   }
   const { publicKey } = await keyRes.json();
 

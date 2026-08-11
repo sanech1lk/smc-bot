@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { format } from "date-fns";
-import { ru } from "date-fns/locale";
 import { Clock, Play, Square, Trash2 } from "lucide-react";
 import { Avatar, EmptyState, ErrorNote, SkeletonList } from "@/components/ui";
 import { formatDuration, shiftMinutes } from "@/lib/field-ops";
+import { useLocale } from "@/components/locale-provider";
+import { dateFnsLocale } from "@/lib/i18n/date-fns-locale";
 import type { ProjectRole, ShiftSummary, StageSummary } from "@/types/models";
 
 /** Best-effort position so a shift can be tied to the site; never blocks. */
@@ -36,6 +37,7 @@ export function ShiftsPanel({
   stages: StageSummary[];
   myRole: ProjectRole;
 }) {
+  const { t, locale } = useLocale();
   const [shifts, setShifts] = useState<ShiftSummary[] | null>(null);
   const [openShift, setOpenShift] = useState<ShiftSummary | null>(null);
   const [canSeeAll, setCanSeeAll] = useState(false);
@@ -83,7 +85,7 @@ export function ShiftsPanel({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось открыть смену");
+      setError(data.error ?? t("shifts.errorStart"));
       return;
     }
     load();
@@ -102,20 +104,22 @@ export function ShiftsPanel({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Не удалось закрыть смену");
+      setError(data.error ?? t("shifts.errorEnd"));
       return;
     }
     load();
   }
 
   async function removeShift(id: string) {
-    if (!confirm("Удалить запись о смене?")) return;
+    if (!confirm(t("shifts.deleteConfirm"))) return;
     const res = await fetch(`/api/shifts/${id}`, { method: "DELETE" });
     if (res.ok) load();
   }
 
   if (shifts === null) return <SkeletonList rows={3} height="h-20" />;
 
+  const hourUnit = t("units.hour");
+  const minuteUnit = t("units.minute");
   const closed = shifts.filter((s) => s.endedAt);
   const totalMinutes = closed.reduce(
     (sum, s) => sum + (shiftMinutes(s.startedAt, s.endedAt) ?? 0),
@@ -134,24 +138,24 @@ export function ShiftsPanel({
                   <Clock size={20} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">Смена идёт</p>
+                  <p className="font-semibold">{t("shifts.inProgressTitle")}</p>
                   <p className="text-sm text-text-secondary">
-                    с {format(new Date(openShift.startedAt), "HH:mm")} ·{" "}
-                    {formatDuration(shiftMinutes(openShift.startedAt, new Date(now)) ?? 0)}
+                    {t("shifts.startedAtPrefix")} {format(new Date(openShift.startedAt), "HH:mm")} ·{" "}
+                    {formatDuration(shiftMinutes(openShift.startedAt, new Date(now)) ?? 0, hourUnit, minuteUnit)}
                     {openShift.stage ? ` · ${openShift.stage.name}` : ""}
                   </p>
                 </div>
               </div>
               <button className="btn-danger w-full" onClick={endShift} disabled={busy}>
                 <Square size={17} fill="currentColor" />
-                {busy ? "Закрываем…" : "Закрыть смену"}
+                {busy ? t("shifts.closing") : t("shifts.endShift")}
               </button>
             </>
           ) : (
             <>
-              <p className="font-semibold">Учёт рабочего времени</p>
+              <p className="font-semibold">{t("shifts.trackingTitle")}</p>
               <select className="input" value={stageId} onChange={(e) => setStageId(e.target.value)}>
-                <option value="">Без привязки к этапу</option>
+                <option value="">{t("shifts.noStage")}</option>
                 {stages.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -160,11 +164,9 @@ export function ShiftsPanel({
               </select>
               <button className="btn-primary w-full" onClick={startShift} disabled={busy}>
                 <Play size={17} fill="currentColor" />
-                {busy ? "Открываем…" : "Начать смену"}
+                {busy ? t("shifts.opening") : t("shifts.startShift")}
               </button>
-              <p className="text-xs text-text-muted">
-                Место фиксируется при открытии и закрытии смены, если разрешена геолокация.
-              </p>
+              <p className="text-xs text-text-muted">{t("shifts.geoNote")}</p>
             </>
           )}
           {error && <ErrorNote>{error}</ErrorNote>}
@@ -174,18 +176,22 @@ export function ShiftsPanel({
       {closed.length > 0 && (
         <div className="card flex items-center justify-between">
           <div>
-            <p className="label">{canSeeAll ? "Всего по бригаде" : "Всего у вас"}</p>
-            <p className="mt-1 text-2xl font-bold tabular">{formatDuration(totalMinutes)}</p>
+            <p className="label">{canSeeAll ? t("shifts.totalCrew") : t("shifts.totalYours")}</p>
+            <p className="mt-1 text-2xl font-bold tabular">
+              {formatDuration(totalMinutes, hourUnit, minuteUnit)}
+            </p>
           </div>
-          <span className="text-sm text-text-muted">{closed.length} смен</span>
+          <span className="text-sm text-text-muted">
+            {closed.length} {t("shifts.shiftsCountSuffix")}
+          </span>
         </div>
       )}
 
       {shifts.length === 0 ? (
         <EmptyState
           icon={Clock}
-          title="Смен пока нет"
-          description={canTrack ? "Откройте смену, когда придёте на объект." : undefined}
+          title={t("shifts.emptyTitle")}
+          description={canTrack ? t("shifts.emptyDescription") : undefined}
         />
       ) : (
         <div className="space-y-2">
@@ -195,10 +201,10 @@ export function ShiftsPanel({
               <div key={s.id} className="card flex items-center gap-3">
                 <Avatar name={s.user?.name ?? "?"} id={s.userId} size={38} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{s.user?.name ?? "Вы"}</p>
+                  <p className="truncate font-semibold">{s.user?.name ?? t("chat.youFallback")}</p>
                   <p className="truncate text-sm text-text-secondary">
-                    {format(new Date(s.startedAt), "d MMM, HH:mm", { locale: ru })}
-                    {s.endedAt ? ` – ${format(new Date(s.endedAt), "HH:mm")}` : " · идёт"}
+                    {format(new Date(s.startedAt), "d MMM, HH:mm", { locale: dateFnsLocale(locale) })}
+                    {s.endedAt ? ` – ${format(new Date(s.endedAt), "HH:mm")}` : ` · ${t("shifts.ongoing")}`}
                     {s.stage ? ` · ${s.stage.name}` : ""}
                   </p>
                 </div>
@@ -207,13 +213,13 @@ export function ShiftsPanel({
                     minutes === null ? "text-status-green" : "text-text-primary"
                   }`}
                 >
-                  {minutes === null ? "идёт" : formatDuration(minutes)}
+                  {minutes === null ? t("shifts.ongoing") : formatDuration(minutes, hourUnit, minuteUnit)}
                 </span>
                 {myRole === "ADMIN" && (
                   <button
                     onClick={() => removeShift(s.id)}
                     className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-status-red"
-                    aria-label="Удалить смену"
+                    aria-label={t("shifts.deleteAria")}
                   >
                     <Trash2 size={16} />
                   </button>

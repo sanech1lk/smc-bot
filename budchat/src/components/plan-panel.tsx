@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import Image from "next/image";
 import { AlertCircle, Check, Map as MapIcon, Plus, Trash2, Upload } from "lucide-react";
 import { EmptyState, SkeletonList } from "@/components/ui";
+import { useLocale } from "@/components/locale-provider";
+import { bcp47Tag } from "@/lib/i18n";
 import type { PlanPinSummary, PlanSummary, ProjectRole, StageSummary } from "@/types/models";
 
 export function PlanPanel({
@@ -15,6 +17,7 @@ export function PlanPanel({
   stages: StageSummary[];
   myRole: ProjectRole;
 }) {
+  const { t, locale } = useLocale();
   const [plans, setPlans] = useState<PlanSummary[]>([]);
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [pins, setPins] = useState<PlanPinSummary[]>([]);
@@ -61,7 +64,8 @@ export function PlanPanel({
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const name = prompt("Название плана (например «1 этаж»)", "План") ?? "План";
+    const defaultName = t("plan.defaultName");
+    const name = prompt(t("plan.namePrompt"), defaultName) ?? defaultName;
 
     setUploading(true);
     const formData = new FormData();
@@ -77,7 +81,7 @@ export function PlanPanel({
       setActivePlanId(data.plan.id);
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Не удалось загрузить план");
+      alert(data.error ?? t("plan.errorUpload"));
     }
   }
 
@@ -108,7 +112,7 @@ export function PlanPanel({
       setPendingPoint(null);
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(data.error ?? "Не удалось добавить метку");
+      alert(data.error ?? t("plan.errorAddPin"));
     }
   }
 
@@ -126,7 +130,7 @@ export function PlanPanel({
   }
 
   async function deletePin(pin: PlanPinSummary) {
-    if (!confirm("Удалить метку?")) return;
+    if (!confirm(t("plan.deletePinConfirm"))) return;
     const res = await fetch(`/api/pins/${pin.id}`, { method: "DELETE" });
     if (res.ok) {
       setPins((prev) => prev.filter((p) => p.id !== pin.id));
@@ -167,11 +171,11 @@ export function PlanPanel({
           <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" id="plan-input" />
           <label htmlFor="plan-input" className="btn-secondary block w-full cursor-pointer text-center">
             {uploading ? (
-              "Загружаем…"
+              t("plan.uploading")
             ) : (
               <>
                 {plans.length === 0 ? <Upload size={18} /> : <Plus size={18} />}
-                {plans.length === 0 ? "Загрузить план объекта" : "Добавить ещё план"}
+                {plans.length === 0 ? t("plan.uploadFirst") : t("plan.uploadMore")}
               </>
             )}
           </label>
@@ -179,17 +183,13 @@ export function PlanPanel({
       )}
 
       {!activePlan && plans.length === 0 && (
-        <EmptyState
-          icon={MapIcon}
-          title="План объекта не загружен"
-          description="Загрузите чертёж — и ставьте метки прямо на нём: где проблема, к какому этапу относится."
-        />
+        <EmptyState icon={MapIcon} title={t("plan.emptyTitle")} description={t("plan.emptyDescription")} />
       )}
 
       {activePlan && (
         <>
           <p className="mb-2 text-sm text-text-secondary">
-            {canManage ? "Нажмите на план, чтобы поставить метку" : "Нажмите на метку, чтобы посмотреть детали"}
+            {canManage ? t("plan.hintManage") : t("plan.hintView")}
           </p>
           <div
             ref={imageRef}
@@ -252,25 +252,28 @@ export function PlanPanel({
                     : "bg-status-green/20 text-status-green"
                 }`}
               >
-                {selectedPin.status === "OPEN" ? "Открыта" : "Решено"}
+                {selectedPin.status === "OPEN" ? t("plan.statusOpen") : t("plan.statusResolved")}
               </span>
             </div>
             {selectedPin.description && <p className="text-text-secondary">{selectedPin.description}</p>}
             {selectedPin.stage && (
-              <p className="mt-2 text-sm text-text-muted">Этап: {selectedPin.stage.name}</p>
+              <p className="mt-2 text-sm text-text-muted">
+                {t("plan.stagePrefix")} {selectedPin.stage.name}
+              </p>
             )}
             <p className="mt-1 text-sm text-text-muted">
-              {selectedPin.createdBy.name} · {new Date(selectedPin.createdAt).toLocaleDateString("ru-RU")}
+              {selectedPin.createdBy.name} ·{" "}
+              {new Date(selectedPin.createdAt).toLocaleDateString(bcp47Tag(locale))}
             </p>
             {myRole !== "CLIENT" && (
               <div className="mt-4 flex gap-3">
                 <button className="btn-secondary flex-1" onClick={() => toggleResolved(selectedPin)}>
-                  {selectedPin.status === "OPEN" ? "Отметить решённой" : "Снова открыть"}
+                  {selectedPin.status === "OPEN" ? t("plan.markResolved") : t("plan.reopen")}
                 </button>
                 <button
                   className="btn-danger px-4"
                   onClick={() => deletePin(selectedPin)}
-                  aria-label="Удалить метку"
+                  aria-label={t("plan.deletePinAria")}
                 >
                   <Trash2 size={18} />
                 </button>
@@ -292,6 +295,7 @@ function NewPinForm({
   onCancel: () => void;
   onSubmit: (title: string, description: string, stageId: string) => void;
 }) {
+  const { t } = useLocale();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [stageId, setStageId] = useState("");
@@ -308,11 +312,11 @@ function NewPinForm({
         className="w-full max-w-md rounded-t-2xl border border-border-soft bg-bg-card p-5 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="mb-3 text-lg font-bold">Новая метка</h3>
+        <h3 className="mb-3 text-lg font-bold">{t("plan.newPinTitle")}</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             className="input"
-            placeholder="Что здесь? (например «Трещина в стене»)"
+            placeholder={t("plan.titlePlaceholder")}
             required
             autoFocus
             value={title}
@@ -320,13 +324,13 @@ function NewPinForm({
           />
           <textarea
             className="input"
-            placeholder="Описание (необязательно)"
+            placeholder={t("plan.descriptionPlaceholder")}
             rows={2}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
           <select className="input" value={stageId} onChange={(e) => setStageId(e.target.value)}>
-            <option value="">Без привязки к этапу</option>
+            <option value="">{t("plan.noStage")}</option>
             {stages.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -335,10 +339,10 @@ function NewPinForm({
           </select>
           <div className="flex gap-3">
             <button type="button" className="btn-secondary flex-1" onClick={onCancel}>
-              Отмена
+              {t("common.cancel")}
             </button>
             <button type="submit" className="btn-primary flex-1">
-              Поставить метку
+              {t("plan.submitPin")}
             </button>
           </div>
         </form>
