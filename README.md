@@ -1,10 +1,12 @@
-# BudChat
+# Kelma
 
 **A messenger for construction crews, organised around the building — not around dates.**
 
-Group chats fail on a construction site. Three weeks into a renovation nobody can find which photo belonged to which stage, whether the client approved that extra work, or what the tiling was quoted at. BudChat keeps every message, photo, task, cost line and acceptance signature attached to a **project → stage**, so the history stays readable months later — when a warranty claim arrives and someone has to prove what was agreed.
+Group chats fail on a construction site. Three weeks into a renovation nobody can find which photo belonged to which stage, whether the client approved that extra work, or what the tiling was quoted at. Kelma keeps every message, photo, task, cost line and acceptance signature attached to a **project → stage**, so the history stays readable months later — when a warranty claim arrives and someone has to prove what was agreed.
 
 Built mobile-first as an installable PWA: crews work from phones, often with one bar of signal and gloves on.
+
+*Kelma* is the trowel — the tool everyone on the site already has in hand.
 
 <p align="center">
   <img src="docs/screenshots/02-projects.png" width="215" alt="Projects list with progress" />
@@ -45,15 +47,15 @@ Keeping six hand-written dictionaries honest is the interesting part:
 
 Things in here that were decided rather than defaulted:
 
-**Realtime access is checked as carefully as REST.** Socket.io connections require a valid NextAuth session, and joining a stage room re-checks project membership against the database — knowing a stage id from a shared URL is not access. Removing someone from a project also evicts their live sockets immediately, so a dismissed subcontractor stops receiving the crew's chat at once instead of whenever they close the tab. ([`server.js`](budchat/server.js), [`socket-server.ts`](budchat/src/lib/socket-server.ts))
+**Realtime access is checked as carefully as REST.** Socket.io connections require a valid NextAuth session, and joining a stage room re-checks project membership against the database — knowing a stage id from a shared URL is not access. Removing someone from a project also evicts their live sockets immediately, so a dismissed subcontractor stops receiving the crew's chat at once instead of whenever they close the tab. ([`server.js`](kelma/server.js), [`socket-server.ts`](kelma/src/lib/socket-server.ts))
 
-**Email invitations wait for a verified address.** Invitations are addressed by email, so honouring them at signup would let anyone register as `foreman@firm.com` and walk into that project. Signing up and using the app works immediately; email-addressed invitations convert to membership only after the address is proven. QR and link invitations are honoured at once — holding the link *is* the proof, and that flow has to keep working for a worker standing next to the foreman. ([`email-verification.ts`](budchat/src/lib/email-verification.ts))
+**Email invitations wait for a verified address.** Invitations are addressed by email, so honouring them at signup would let anyone register as `foreman@firm.com` and walk into that project. Signing up and using the app works immediately; email-addressed invitations convert to membership only after the address is proven. QR and link invitations are honoured at once — holding the link *is* the proof, and that flow has to keep working for a worker standing next to the foreman. ([`email-verification.ts`](kelma/src/lib/email-verification.ts))
 
-**Locale detection can't break hydration.** The server always renders the default locale, so the client's first render must match it exactly; the real locale is applied in a layout effect — after hydration reconciles, before the browser paints. A phone set to Polish shows Polish on the first frame the user actually sees, with no mismatch warning and no flash of the wrong language. ([`locale-provider.tsx`](budchat/src/components/locale-provider.tsx))
+**Locale detection can't break hydration.** The server always renders the default locale, so the client's first render must match it exactly; the real locale is applied in a layout effect — after hydration reconciles, before the browser paints. A phone set to Polish shows Polish on the first frame the user actually sees, with no mismatch warning and no flash of the wrong language. ([`locale-provider.tsx`](kelma/src/components/locale-provider.tsx))
 
-**Photos are normalised before they touch the disk.** A phone camera produces 8–12 MB per shot and a crew takes dozens a day. Uploads are capped at 2048px (plans 3500px), EXIF orientation is baked into the pixels, and metadata — including the camera's GPS tags — is stripped; coordinates live in a database column where the app controls who sees them. A file sharp cannot decode is stored untouched rather than rejected: losing a photo taken on site is the worse outcome. ([`image.ts`](budchat/src/lib/image.ts))
+**Photos are normalised before they touch the disk.** A phone camera produces 8–12 MB per shot and a crew takes dozens a day. Uploads are capped at 2048px (plans 3500px), EXIF orientation is baked into the pixels, and metadata — including the camera's GPS tags — is stripped; coordinates live in a database column where the app controls who sees them. A file sharp cannot decode is stored untouched rather than rejected: losing a photo taken on site is the worse outcome. ([`image.ts`](kelma/src/lib/image.ts))
 
-**Startup refuses a misconfigured production.** A placeholder or short `NEXTAUTH_SECRET`, a missing `DATABASE_URL`, or an `http://` auth URL in production stop the process with an explanation. All three fail silently otherwise — and a plain-HTTP deployment quietly disables geolocation, push and offline mode while looking fine. ([`env-guard.js`](budchat/env-guard.js))
+**Startup refuses a misconfigured production.** A placeholder or short `NEXTAUTH_SECRET`, a missing `DATABASE_URL`, or an `http://` auth URL in production stop the process with an explanation. All three fail silently otherwise — and a plain-HTTP deployment quietly disables geolocation, push and offline mode while looking fine. ([`env-guard.js`](kelma/env-guard.js))
 
 **Offline is assumed, not handled as an error.** Outgoing messages and photos queue in IndexedDB and flush when the connection returns. Basements exist.
 
@@ -70,7 +72,7 @@ Roughly 20k lines across 162 TypeScript files, 25 database models, 56 API routes
 ## Running it
 
 ```bash
-cd budchat
+cd kelma
 cp .env.example .env
 # generate your own session key — the app refuses to start in production without one
 sed -i "s|^NEXTAUTH_SECRET=.*|NEXTAUTH_SECRET=\"$(openssl rand -base64 32)\"|" .env
@@ -82,11 +84,11 @@ Then open `http://localhost:3000`. Demo accounts (password `password123`):
 
 | Account | Role |
 | --- | --- |
-| `prorab@budchat.dev` | admin / foreman |
-| `master@budchat.dev` | worker |
-| `client@budchat.dev` | client |
+| `prorab@kelma.dev` | admin / foreman |
+| `master@kelma.dev` | worker |
+| `client@kelma.dev` | client |
 
-Production deployment with a domain and automatic HTTPS is described in [`budchat/DEPLOY.md`](budchat/DEPLOY.md); operational detail (backups, health checks, SMTP, push, Google Play packaging) lives in [`budchat/README.md`](budchat/README.md).
+Production deployment with a domain and automatic HTTPS is described in [`kelma/DEPLOY.md`](kelma/DEPLOY.md); operational detail (backups, health checks, SMTP, push, Google Play packaging) lives in [`kelma/README.md`](kelma/README.md).
 
 ## Known limitations
 
@@ -99,4 +101,4 @@ Stated plainly, because a README that pretends otherwise is less useful:
 
 ---
 
-<sub>`smc_bot_v2.7_clean_visual.py` at the repository root is an unrelated earlier Telegram/Binance experiment kept for history; everything above lives in [`budchat/`](budchat).</sub>
+<sub>`smc_bot_v2.7_clean_visual.py` at the repository root is an unrelated earlier Telegram/Binance experiment kept for history; everything above lives in [`kelma/`](kelma).</sub>

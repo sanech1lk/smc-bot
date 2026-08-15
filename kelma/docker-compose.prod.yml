@@ -1,0 +1,43 @@
+# Продакшн-надстройка: HTTPS-прокси перед приложением.
+#
+# Запуск:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# Требует в .env двух переменных:
+#   APP_DOMAIN=kelma.example.com   — домен, уже указывающий на этот сервер
+#   ACME_EMAIL=you@example.com       — почта для уведомлений Let's Encrypt
+#
+# Порт приложения в базовом файле привязан к 127.0.0.1, поэтому снаружи
+# достучаться до него в обход TLS нельзя: Caddy ходит к нему по внутренней
+# сети Docker как к `app:3000`.
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN не задан — укажите домен в .env}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL не задан — укажите почту для Let's Encrypt в .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Сертификаты переживают пересоздание контейнера. Терять этот том не
+      # стоит: у Let's Encrypt есть лимит на повторную выдачу.
+      - caddy_data:/data
+      - caddy_config:/config
+
+  app:
+    environment:
+      # Схема здесь определяет, ставит ли NextAuth защищённую cookie сессии,
+      # поэтому в проде она обязана быть https.
+      NEXTAUTH_URL: https://${APP_DOMAIN}
+
+volumes:
+  caddy_data:
+  caddy_config:
