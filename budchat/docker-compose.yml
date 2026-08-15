@@ -46,9 +46,19 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
     ports:
-      - "3000:3000"
+      # Привязано к локальному интерфейсу намеренно: снаружи приложение
+      # должно быть доступно только через HTTPS-прокси из
+      # docker-compose.prod.yml. Локально по-прежнему http://localhost:3000.
+      - "127.0.0.1:3000:3000"
     volumes:
       - budchat_uploads:/app/public/uploads
+    healthcheck:
+      # Проверяет и веб-сервер, и связь с базой — см. /api/health.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
     command: sh -c "npx prisma migrate deploy && node server.js"
 
 volumes:

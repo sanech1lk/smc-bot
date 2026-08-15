@@ -50,6 +50,20 @@ function collectEnvProblems(env) {
     else warnings.push(message);
   }
 
+  // NextAuth решает по этой переменной, ставить ли защищённую cookie сессии,
+  // а браузер по той же схеме — разрешать ли геолокацию, push и service
+  // worker. http:// в проде ломает всё это тихо, без единой ошибки в логе.
+  const authUrl = (env.NEXTAUTH_URL ?? "").trim();
+  if (isProduction && authUrl.startsWith("http://")) {
+    const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:|$)/.test(authUrl);
+    const message =
+      "NEXTAUTH_URL начинается с http:// — сессии не получат защищённую cookie, " +
+      "а геолокация, push-уведомления и офлайн-режим будут заблокированы браузером. " +
+      "Нужен https:// (см. docker-compose.prod.yml).";
+    if (isLocalhost) warnings.push(message);
+    else errors.push(message);
+  }
+
   // Push is optional by design, but half a key pair means it silently no-ops.
   const hasPublicVapid = Boolean((env.VAPID_PUBLIC_KEY ?? "").trim());
   const hasPrivateVapid = Boolean((env.VAPID_PRIVATE_KEY ?? "").trim());

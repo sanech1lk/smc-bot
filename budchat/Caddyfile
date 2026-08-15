@@ -1,0 +1,42 @@
+# Обратный прокси с автоматическим HTTPS.
+#
+# Caddy сам получает и продлевает сертификат Let's Encrypt для домена из
+# APP_DOMAIN — вручную ничего делать не нужно, но домен должен уже указывать
+# A-записью на этот сервер, иначе выдача сертификата не пройдёт.
+#
+# HTTPS здесь не «для галочки»: без него браузер запрещает геолокацию,
+# push-уведомления и service worker, а NextAuth не ставит защищённую cookie
+# сессии. То есть по HTTP половина приложения просто не работает.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	# reverse_proxy сам пробрасывает Upgrade/Connection, поэтому WebSocket
+	# чата (Socket.io) работает без отдельного блока конфигурации.
+	reverse_proxy app:3000
+
+	# Загрузка фотографий с телефона бывает медленной на площадке — таймаут
+	# по умолчанию для таких запросов маловат.
+	request_body {
+		max_size 30MB
+	}
+
+	header {
+		# Год HSTS: браузер сам перестанет ходить по HTTP на этот домен.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MB
+			roll_keep 5
+		}
+	}
+}
