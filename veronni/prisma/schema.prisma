@@ -1,0 +1,83 @@
+// SQLite, а не Postgres: демо должно запускаться одной командой на любом
+// ноутбуке, без docker и без сервера базы. Для одной пиццерии этого хватает
+// и в бою — заказы пишутся по одному, а не тысячами в секунду.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Позиция меню. Цена — в грошах (целое число), чтобы никогда не считать
+// деньги в плавающей точке: 0.1 + 0.2 в double даёт 0.30000000000000004,
+// и это выплывет в чеке.
+model MenuItem {
+  id          String  @id
+  category    String
+  name        String
+  description String
+  size        String?
+  priceGr     Int
+  vegetarian  Boolean @default(false)
+  spicy       Boolean @default(false)
+  available   Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  orderItems OrderItem[]
+}
+
+// Диалог с одним клиентом. История и корзина лежат в базе, а не в памяти
+// процесса: перезапуск бота не должен ронять наполовину собранный заказ.
+model Conversation {
+  chatId       String   @id
+  history      String   @default("[]")
+  cart         String   @default("[]")
+  customerName String?
+  phone        String?
+  address      String?
+  deliveryMode String?
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Номер заказа он же первичный ключ: клиенту и кухне нужно короткое число,
+// которое можно назвать вслух, а не cuid.
+model Order {
+  number       Int      @id @default(autoincrement())
+  chatId       String
+  customerName String
+  phone        String
+  deliveryMode String
+  address      String?
+  note         String?
+  subtotalGr   Int
+  deliveryGr   Int      @default(0)
+  totalGr      Int
+  status       String   @default("new")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Снимок названия и цены на момент заказа: подорожает пицца — старый чек
+// обязан остаться прежним.
+model OrderItem {
+  id           String @id @default(cuid())
+  orderNumber  Int
+  itemId       String
+  nameSnapshot String
+  priceGr      Int
+  quantity     Int
+
+  order Order    @relation(fields: [orderNumber], references: [number], onDelete: Cascade)
+  item  MenuItem @relation(fields: [itemId], references: [id])
+
+  @@index([orderNumber])
+}

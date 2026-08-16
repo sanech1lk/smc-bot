@@ -101,4 +101,4 @@ Stated plainly, because a README that pretends otherwise is less useful:
 
 ---
 
-<sub>`smc_bot_v2.7_clean_visual.py` at the repository root is an unrelated earlier Telegram/Binance experiment kept for history; everything above lives in [`kelma/`](kelma).</sub>
+<sub>Everything above lives in [`kelma/`](kelma). Two other things share this repository: [`veronni/`](veronni) — a Telegram order-taking agent for a pizzeria, where a customer orders in plain sentences and the money arithmetic deliberately stays in code rather than in the model; and `smc_bot_v2.7_clean_visual.py` at the root, an unrelated earlier Telegram/Binance experiment kept for history.</sub>
