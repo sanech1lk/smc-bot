@@ -24,6 +24,19 @@ function Get-PCFacts {
         $facts.CpuMaxClockMHz = $cpu.MaxClockSpeed
     } catch { $facts.CpuName = 'н/д' }
 
+    # Материнская плата. Чипсет важен: на Intel H610/H510/H410 разгон памяти
+    # заблокирован, там базовая частота JEDEC - это потолок платформы,
+    # а не забытый в BIOS профиль XMP.
+    $facts.Board = 'н/д'
+    $facts.MemoryOcSupported = $true
+    try {
+        $bb = Get-CimInstance Win32_BaseBoard -ErrorAction Stop
+        $facts.Board = "$($bb.Manufacturer) $($bb.Product)".Trim()
+        if ($bb.Product -match '\bH[3-6]10\b' -or $bb.Product -match '\bH[3-6]10[A-Z]') {
+            $facts.MemoryOcSupported = $false
+        }
+    } catch { }
+
     $facts.Gpus = @()
     try {
         foreach ($g in (Get-CimInstance Win32_VideoController -ErrorAction Stop)) {
@@ -147,18 +160,28 @@ function Get-PCFindings {
                 'Двухканальный режим работает частично (flex mode). По возможности использовать одинаковые планки.'
         }
     }
-    foreach ($m in $modules) {
-        if ($m.RatedMHz -and $m.ActualMHz -and $m.ActualMHz -lt $m.RatedMHz) {
-            Add-Finding 'Критично' "XMP/EXPO выключен ($($m.Bank))" `
-                "Планка рассчитана на $($m.RatedMHz) МГц, а работает на $($m.ActualMHz) МГц. Включите профиль XMP/EXPO в BIOS - это до +15% FPS и бесплатно."
-            break
-        }
-    }
     $ddr5Base = @($modules | Where-Object { $_.Type -eq 'DDR5' -and $_.ActualMHz -le 4800 })
     $ddr4Base = @($modules | Where-Object { $_.Type -eq 'DDR4' -and $_.ActualMHz -le 2133 })
-    if ($ddr5Base.Count -gt 0 -or $ddr4Base.Count -gt 0) {
-        Add-Finding 'Важно' 'Память на базовой (JEDEC) частоте' `
-            'i5-14400F хорошо реагирует на скорость памяти. Профиль XMP в BIOS поднимает DDR5 с 4800 до 6000+ МГц (DDR4 - с 2133 до 3200+).'
+    $slowerThanRated = @($modules | Where-Object { $_.RatedMHz -and $_.ActualMHz -and $_.ActualMHz -lt $_.RatedMHz })
+
+    if (-not $Facts.MemoryOcSupported) {
+        # Плата на заблокированном чипсете: советовать XMP бессмысленно - его там нет.
+        if ($ddr5Base.Count -gt 0 -or $ddr4Base.Count -gt 0 -or $slowerThanRated.Count -gt 0) {
+            Add-Finding 'Средне' 'Память на базовой частоте, и это потолок платы' `
+                ("Чипсет платы ($($Facts.Board)) не поддерживает разгон памяти - пункта XMP в BIOS нет, " +
+                 'частота выше базовой недостижима. Это не ошибка настройки: поднять её можно только заменой платы ' +
+                 'на B760/H770/Z790, и ради 5-15% FPS такая замена обычно себя не окупает.')
+        }
+    } else {
+        if ($slowerThanRated.Count -gt 0) {
+            $m = $slowerThanRated[0]
+            Add-Finding 'Критично' "XMP/EXPO выключен ($($m.Bank))" `
+                "Планка рассчитана на $($m.RatedMHz) МГц, а работает на $($m.ActualMHz) МГц. Включите профиль XMP/EXPO в BIOS - это до +15% FPS и бесплатно."
+        }
+        if ($ddr5Base.Count -gt 0 -or $ddr4Base.Count -gt 0) {
+            Add-Finding 'Важно' 'Память на базовой (JEDEC) частоте' `
+                'i5-14400F хорошо реагирует на скорость памяти. Профиль XMP в BIOS поднимает DDR5 с 4800 до 6000+ МГц (DDR4 - с 2133 до 3200+).'
+        }
     }
 
     # --- монитор
@@ -242,6 +265,7 @@ function Show-PCReport {
 
     Write-Host ''
     Write-Host ' Железо' -ForegroundColor White
+    Write-Host "   Плата   : $($facts.Board)"
     Write-Host "   CPU     : $($facts.CpuName)  ($($facts.CpuCores) ядер / $($facts.CpuThreads) потоков)"
     foreach ($g in @($facts.Gpus)) {
         Write-Host "   GPU     : $($g.Name)  драйвер $($g.DriverVersion)"
@@ -282,8 +306,13 @@ function Show-PCReport {
     }
 
     Write-Header 'РУЧНЫЕ ШАГИ (скрипт их сделать не может)'
-    $manual = @(
-        'BIOS: включить профиль памяти XMP (Intel) - самый крупный бесплатный прирост для i5-14400F.',
+    $manual = @()
+    if ($facts.MemoryOcSupported) {
+        $manual += 'BIOS: включить профиль памяти XMP (Intel) - самый крупный бесплатный прирост для i5-14400F.'
+    } else {
+        $manual += 'BIOS: пункта XMP нет - чипсет платы не поддерживает разгон памяти. Базовая частота здесь и есть потолок, это нормально.'
+    }
+    $manual += @(
         'BIOS: включить Above 4G Decoding и Resizable BAR - для RTX 4060 это +2-8% в ряде игр.',
         'Панель управления NVIDIA > Управление параметрами 3D:',
         '   - Режим управления электропитанием: "Предпочтителен режим максимальной производительности"',
