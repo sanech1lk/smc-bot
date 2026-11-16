@@ -1,0 +1,14 @@
+# Основные зависимости (обязательные)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+requests>=2.31
+beautifulsoup4>=4.12
+APScheduler>=3.10,<4
+vinted-api-kit>=1.3
+
+# Необязательно: нужен только как запасной вариант для OLX,
+# если сайт начнёт отвечать 403 (см. README, раздел "Если начали блокировать").
+# Чтобы включить: уберите решётку в строке ниже, затем выполните
+#   pip install -r requirements.txt
+#   playwright install chromium
+# playwright>=1.45

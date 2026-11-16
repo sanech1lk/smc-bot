@@ -1,0 +1,7 @@
+{
+  "telegram_token": "",
+  "telegram_chat_id": "",
+  "check_interval_minutes": 10,
+  "blacklist": ["uszkodzony", "uszkodzona", "na części", "zamienię"],
+  "olx_use_playwright": false
+}

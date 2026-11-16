@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Marketplace Monitor</title>
+  <style>
+    /* ---------- Оформление ---------- */
+    :root {
+      --bg: #f3f5f8; --card: #ffffff; --text: #1c2430; --muted: #68758a;
+      --line: #dfe4ec; --accent: #2563eb; --accent-dark: #1d4ed8;
+      --danger: #c62828; --ok: #1b7f3b;
+      --olx: #0b7a75; --vinted: #6d3fc4; --facebook: #1565c0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    .page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 20px; }
+    h1 { font-size: 24px; margin: 0; }
+    h2 { font-size: 17px; margin: 0 0 14px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+      padding: 18px; margin-bottom: 18px;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    input, select, textarea {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px;
+      font: inherit; color: inherit; background: #fff;
+    }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+    textarea { resize: vertical; min-height: 60px; }
+    button {
+      padding: 8px 14px; border: 1px solid var(--accent); border-radius: 7px;
+      background: var(--accent); color: #fff; font: inherit; cursor: pointer;
+    }
+    button:hover { background: var(--accent-dark); }
+    button:disabled { opacity: .6; cursor: wait; }
+    button.secondary { background: #fff; color: var(--accent); }
+    button.secondary:hover { background: #eef3ff; }
+    button.danger { background: #fff; color: var(--danger); border-color: var(--danger); }
+    button.danger:hover { background: #fdecec; }
+    button.small { padding: 4px 10px; font-size: 13px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+    td.nowrap { white-space: nowrap; }
+    a { color: var(--accent); }
+    .badge {
+      display: inline-block; padding: 1px 8px; border-radius: 20px;
+      color: #fff; font-size: 12px; white-space: nowrap;
+    }
+    .badge.olx { background: var(--olx); }
+    .badge.vinted { background: var(--vinted); }
+    .badge.facebook { background: var(--facebook); }
+    .tag-new { color: var(--ok); font-weight: 600; }
+    .message { font-size: 14px; }
+    .message.ok { color: var(--ok); }
+    .message.error { color: var(--danger); }
+    .note {
+      background: #fff8e1; border: 1px solid #f0d98a; border-radius: 7px;
+      padding: 10px 12px; font-size: 13px; margin-top: 12px;
+    }
+    .hidden { display: none; }
+    .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .check input { width: auto; }
+    .check label { margin: 0; color: var(--text); font-size: 14px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Marketplace Monitor</h1>
+    <span class="muted" id="status-line">Загрузка…</span>
+  </header>
+
+  <!-- ===== Новый фильтр ===== -->
+  <section class="card">
+    <h2>Новый фильтр</h2>
+    <form id="filter-form">
+      <div class="grid">
+        <div>
+          <label for="platform">Маркетплейс</label>
+          <select id="platform"></select>
+        </div>
+        <div>
+          <label for="keywords">Ключевые слова</label>
+          <input id="keywords" required maxlength="200" placeholder="например: iphone 13">
+        </div>
+        <div>
+          <label for="min_price">Цена от, zł</label>
+          <input id="min_price" type="number" min="0" step="1">
+        </div>
+        <div>
+          <label for="max_price">Цена до, zł</label>
+          <input id="max_price" type="number" min="0" step="1">
+        </div>
+        <div id="city-box">
+          <label for="city">Город (по-польски)</label>
+          <input id="city" maxlength="100" placeholder="например: Warszawa">
+        </div>
+        <div id="category-box">
+          <label for="category">Категория</label>
+          <select id="category"></select>
+        </div>
+      </div>
+      <div class="note hidden" id="platform-note"></div>
+      <div class="row">
+        <button type="submit">Добавить в отслеживание</button>
+        <span class="message" id="filter-message"></span>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== Активные фильтры ===== -->
+  <section class="card">
+    <h2>Активные фильтры</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Площадка</th><th>Запрос</th><th>Цена</th><th>Город</th><th>Категория</th><th>Последняя проверка</th><th></th></tr>
+        </thead>
+        <tbody id="filters-body"></tbody>
+      </table>
+    </div>
+    <div class="row">
+      <button id="check-button">Проверить сейчас</button>
+      <span class="message" id="check-message"></span>
+    </div>
+  </section>
+
+  <!-- ===== Найденные объявления ===== -->
+  <section class="card">
+    <h2>Найденные объявления</h2>
+    <div class="check" style="margin: 0 0 10px">
+      <input type="checkbox" id="only-new">
+      <label for="only-new">Показывать только новые (скрыть те, что были на сайте при первой проверке)</label>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Название</th><th>Цена</th><th>Город</th><th>Площадка</th><th>Ссылка</th><th>Найдено</th></tr>
+        </thead>
+        <tbody id="listings-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Настройки ===== -->
+  <section class="card">
+    <h2>Настройки</h2>
+    <form id="settings-form">
+      <div class="grid">
+        <div>
+          <label for="telegram_token">Токен Telegram-бота</label>
+          <input id="telegram_token" type="password" autocomplete="off" placeholder="123456:ABC-DEF…">
+        </div>
+        <div>
+          <label for="telegram_chat_id">Chat ID</label>
+          <input id="telegram_chat_id" autocomplete="off" placeholder="например: 123456789">
+        </div>
+        <div>
+          <label for="check_interval_minutes">Интервал проверки, минут</label>
+          <input id="check_interval_minutes" type="number" min="3" max="1440" step="1" required>
+        </div>
+      </div>
+      <div style="margin-top: 12px">
+        <label for="blacklist">Чёрный список слов (через запятую) — объявления с этими словами в названии пропускаются</label>
+        <textarea id="blacklist" placeholder="uszkodzony, na części, zamienię"></textarea>
+      </div>
+      <div class="check">
+        <input type="checkbox" id="olx_use_playwright">
+        <label for="olx_use_playwright">Всегда открывать OLX через браузер Playwright (включайте, только если OLX блокирует — см. README)</label>
+      </div>
+      <div class="row">
+        <button type="submit">Сохранить настройки</button>
+        <button type="button" class="secondary" id="test-button">Тест уведомления</button>
+        <span class="message" id="settings-message"></span>
+      </div>
+    </form>
+  </section>
+
+</div>
+
+<script>
+// =====================================================================
+//  Вся логика страницы. Страница общается с сервером через fetch():
+//  /api/filters, /api/listings, /api/settings и т.д. (см. main.py)
+// =====================================================================
+
+let PLATFORMS = {};   // площадки и категории, приходят с сервера
+const $ = (id) => document.getElementById(id);   // короткая запись для поиска элемента
+
+// ---------- Запрос к серверу ----------
+async function api(path, method = "GET", body = null) {
+  const options = { method, headers: {} };
+  if (body !== null) {
+    options.headers["Content-Type"] = "application/json";
+    options.body = JSON.stringify(body);
+  }
+  const response = await fetch(path, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    // Сервер прислал ошибку — достаём понятный текст
+    let text = data.detail || ("Ошибка " + response.status);
+    if (Array.isArray(text)) text = text.map((e) => e.msg).join("; ");
+    throw new Error(text);
+  }
+  return data;
+}
+
+// ---------- Вспомогательное ----------
+function showMessage(elementId, text, isError = false) {
+  const el = $(elementId);
+  el.textContent = text;
+  el.className = "message " + (isError ? "error" : "ok");
+}
+
+// Создаёт ячейку таблицы с обычным текстом.
+// textContent (а не innerHTML) — чтобы название объявления не могло вставить на страницу чужой код.
+function cell(text, className = "") {
+  const td = document.createElement("td");
+  td.textContent = text ?? "";
+  if (className) td.className = className;
+  return td;
+}
+
+function badgeCell(platform) {
+  const td = document.createElement("td");
+  const span = document.createElement("span");
+  span.className = "badge " + platform;
+  span.textContent = PLATFORMS[platform]?.name || platform;
+  td.appendChild(span);
+  return td;
+}
+
+function priceRange(f) {
+  if (f.min_price === null && f.max_price === null) return "любая";
+  const from = f.min_price !== null ? "от " + f.min_price : "";
+  const to = f.max_price !== null ? "до " + f.max_price : "";
+  return (from + " " + to).trim() + " zł";
+}
+
+function emptyRow(tbody, columns, text) {
+  const tr = document.createElement("tr");
+  const td = cell(text, "muted");
+  td.colSpan = columns;
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+}
+
+// ---------- Форма фильтра: категории и подсказки зависят от площадки ----------
+function onPlatformChange() {
+  const platform = $("platform").value;
+  const select = $("category");
+  select.innerHTML = "";
+  for (const [value, name] of PLATFORMS[platform].categories) {
+    select.add(new Option(name, value));
+  }
+  // Если у площадки только "Все категории" — прячем поле
+  $("category-box").classList.toggle("hidden", select.options.length <= 1);
+
+  const note = $("platform-note");
+  const notes = {
+    vinted: "Vinted не умеет искать по городу — поле «Город» для него не используется.",
+    facebook: "Facebook Marketplace не проверяется автоматически (нет официального API, высок риск блокировки аккаунта). " +
+              "Фильтр сохранится, а рядом с ним появится кнопка «Открыть поиск» — она откроет Facebook с вашими условиями.",
+  };
+  note.textContent = notes[platform] || "";
+  note.classList.toggle("hidden", !notes[platform]);
+  $("city-box").classList.toggle("hidden", platform === "vinted");
+}
+
+// ---------- Фильтры ----------
+async function loadFilters() {
+  const filters = await api("/api/filters");
+  const tbody = $("filters-body");
+  tbody.innerHTML = "";
+  if (!filters.length) emptyRow(tbody, 7, "Пока нет ни одного фильтра — добавьте первый выше.");
+
+  for (const f of filters) {
+    const tr = document.createElement("tr");
+    tr.appendChild(badgeCell(f.platform));
+    tr.appendChild(cell(f.keywords));
+    tr.appendChild(cell(priceRange(f), "nowrap"));
+    tr.appendChild(cell(f.city || "—"));
+    const category = (PLATFORMS[f.platform]?.categories || []).find((pair) => pair[0] === f.category);
+    tr.appendChild(cell(f.category ? (category ? category[1] : f.category) : "—"));
+
+    if (f.platform === "facebook") {
+      tr.appendChild(cell("вручную, по кнопке", "muted"));
+    } else {
+      const status = f.last_checked ? f.last_checked.slice(5, 16) + " — " + f.last_status : "ещё не проверялся";
+      const td = cell(status);
+      if ((f.last_status || "").startsWith("Ошибка")) td.style.color = "var(--danger)";
+      tr.appendChild(td);
+    }
+
+    const actions = document.createElement("td");
+    actions.className = "nowrap";
+    if (f.search_url) {
+      const open = document.createElement("button");
+      open.className = "secondary small";
+      open.textContent = "Открыть поиск";
+      open.onclick = () => window.open(f.search_url, "_blank", "noopener");
+      actions.appendChild(open);
+      actions.append(" ");
+    }
+    const del = document.createElement("button");
+    del.className = "danger small";
+    del.textContent = "Удалить";
+    del.onclick = async () => {
+      if (!confirm("Удалить фильтр «" + f.keywords + "» и найденные по нему объявления?")) return;
+      await api("/api/filters/" + f.id, "DELETE");
+      loadFilters();
+      loadListings();
+    };
+    actions.appendChild(del);
+    tr.appendChild(actions);
+    tbody.appendChild(tr);
+  }
+}
+
+$("filter-form").addEventListener("submit", async (event) => {
+  event.preventDefault();   // не перезагружать страницу
+  const number = (id) => ($(id).value === "" ? null : Number($(id).value));
+  try {
+    await api("/api/filters", "POST", {
+      platform: $("platform").value,
+      keywords: $("keywords").value,
+      min_price: number("min_price"),
+      max_price: number("max_price"),
+      city: $("platform").value === "vinted" ? "" : $("city").value,
+      category: $("category").value,
+    });
+    showMessage("filter-message", "Фильтр добавлен");
+    $("keywords").value = "";
+    loadFilters();
+  } catch (error) {
+    showMessage("filter-message", error.message, true);
+  }
+});
+
+// ---------- Проверка вручную ----------
+$("check-button").addEventListener("click", async () => {
+  const button = $("check-button");
+  button.disabled = true;
+  showMessage("check-message", "Идёт проверка… (между фильтрами пауза в несколько секунд)");
+  try {
+    const result = await api("/api/check", "POST");
+    if (result.busy) {
+      showMessage("check-message", "Проверка уже идёт — подождите минуту.", true);
+    } else if (!result.results.length) {
+      showMessage("check-message", "Нет фильтров для автоматической проверки (OLX или Vinted).", true);
+    } else {
+      const errors = result.results.filter((r) => !r.ok).length;
+      showMessage(
+        "check-message",
+        "Готово. Новых объявлений: " + result.total_new + (errors ? ". Фильтров с ошибкой: " + errors + " (см. таблицу)" : ""),
+        errors > 0
+      );
+    }
+  } catch (error) {
+    showMessage("check-message", error.message, true);
+  }
+  button.disabled = false;
+  loadFilters();
+  loadListings();
+  loadSettings(false);
+});
+
+// ---------- Объявления ----------
+async function loadListings() {
+  let listings = await api("/api/listings");
+  if ($("only-new").checked) listings = listings.filter((item) => item.is_new);
+  const tbody = $("listings-body");
+  tbody.innerHTML = "";
+  if (!listings.length) emptyRow(tbody, 6, "Объявлений пока нет.");
+
+  for (const item of listings) {
+    const tr = document.createElement("tr");
+    tr.appendChild(cell(item.title || "Без названия"));
+    tr.appendChild(cell(item.price || "—", "nowrap"));
+    tr.appendChild(cell(item.city || "—"));
+    tr.appendChild(badgeCell(item.platform));
+
+    const linkCell = document.createElement("td");
+    // Открываем только обычные http/https ссылки
+    if (/^https?:\/\//.test(item.url || "")) {
+      const a = document.createElement("a");
+      a.href = item.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = "Открыть";
+      linkCell.appendChild(a);
+    }
+    tr.appendChild(linkCell);
+
+    const time = cell(item.found_at.slice(5, 16) + " ", "nowrap");
+    if (item.is_new) {
+      const tag = document.createElement("span");
+      tag.className = "tag-new";
+      tag.textContent = "новое";
+      time.appendChild(tag);
+    }
+    tr.appendChild(time);
+    tbody.appendChild(tr);
+  }
+}
+$("only-new").addEventListener("change", loadListings);
+
+// ---------- Настройки ----------
+// fillForm = false — обновить только строку статуса, не трогая поля (чтобы не стереть то, что вы печатаете)
+async function loadSettings(fillForm = true) {
+  const s = await api("/api/settings");
+  $("status-line").textContent =
+    "Автопроверка каждые " + s.check_interval_minutes + " мин." +
+    (s.next_run ? " Следующая в " + s.next_run : "") +
+    (s.telegram_token && s.telegram_chat_id ? "" : " · Telegram не настроен");
+  if (!fillForm) return;
+  $("telegram_token").value = s.telegram_token;
+  $("telegram_chat_id").value = s.telegram_chat_id;
+  $("check_interval_minutes").value = s.check_interval_minutes;
+  $("check_interval_minutes").min = s.min_interval;
+  $("blacklist").value = s.blacklist.join(", ");
+  $("olx_use_playwright").checked = s.olx_use_playwright;
+}
+
+async function saveSettings() {
+  await api("/api/settings", "POST", {
+    telegram_token: $("telegram_token").value,
+    telegram_chat_id: $("telegram_chat_id").value,
+    check_interval_minutes: Number($("check_interval_minutes").value),
+    blacklist: $("blacklist").value.split(","),
+    olx_use_playwright: $("olx_use_playwright").checked,
+  });
+}
+
+$("settings-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await saveSettings();
+    showMessage("settings-message", "Настройки сохранены");
+    loadSettings();
+  } catch (error) {
+    showMessage("settings-message", error.message, true);
+  }
+});
+
+$("test-button").addEventListener("click", async () => {
+  try {
+    await saveSettings();   // сначала сохраняем то, что введено в полях
+    showMessage("settings-message", "Отправляю…");
+    const result = await api("/api/telegram/test", "POST");
+    showMessage("settings-message", result.message, !result.ok);
+    loadSettings(false);
+  } catch (error) {
+    showMessage("settings-message", error.message, true);
+  }
+});
+
+// ---------- Запуск страницы ----------
+async function start() {
+  PLATFORMS = await api("/api/meta");
+  for (const [value, info] of Object.entries(PLATFORMS)) {
+    $("platform").add(new Option(info.name, value));
+  }
+  $("platform").addEventListener("change", onPlatformChange);
+  onPlatformChange();
+
+  await Promise.all([loadFilters(), loadListings(), loadSettings()]);
+
+  // Каждые 30 секунд обновляем таблицы — вдруг таймер нашёл что-то новое
+  setInterval(() => { loadFilters(); loadListings(); loadSettings(false); }, 30000);
+}
+start().catch((error) => { $("status-line").textContent = "Ошибка загрузки: " + error.message; });
+</script>
+</body>
+</html>

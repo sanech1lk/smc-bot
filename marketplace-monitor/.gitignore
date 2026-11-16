@@ -1,0 +1,6 @@
+# Личные данные и служебные файлы — в git не попадают
+config.json
+monitor.db
+venv/
+__pycache__/
+*.pyc
