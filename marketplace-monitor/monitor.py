@@ -76,11 +76,20 @@ def check_filter(f: dict, config: dict) -> dict:
         items = fetch_items(f, config)
     except ParserError as error:
         database.update_filter_status(f["id"], f"Ошибка: {error}")
-        return {"filter": name, "ok": False, "new": 0, "deals": 0, "message": str(error)}
+        return {"filter": name, "ok": False, "new": 0, "deals": 0, "fetched": 0, "message": str(error)}
     except Exception as error:  # любая неожиданная ошибка не должна ронять приложение
         message = f"{type(error).__name__}: {error}"
         database.update_filter_status(f["id"], f"Ошибка: {message}")
-        return {"filter": name, "ok": False, "new": 0, "deals": 0, "message": message}
+        return {"filter": name, "ok": False, "new": 0, "deals": 0, "fetched": 0, "message": message}
+
+    fetched = len(items)  # сколько объявлений вообще пришло с сайта
+    if fetched == 0:
+        # Сайт ответил, но объявлений нет — обычно запрос слишком узкий,
+        # город написан не так, или сайт поменял вёрстку
+        message = ("Ошибка: с сайта не пришло ни одного объявления. Нажмите «Открыть на сайте» "
+                   "и проверьте, есть ли там результаты. Если на сайте они есть — пришлите снимок.")
+        database.update_filter_status(f["id"], message)
+        return {"filter": name, "ok": False, "new": 0, "deals": 0, "fetched": 0, "message": message}
 
     items = [item for item in items if passes_filters(item, f, config.get("blacklist", []))]
 
@@ -94,9 +103,10 @@ def check_filter(f: dict, config: dict) -> dict:
     if not f["initialized"]:
         for item in items:
             database.save_listing_if_new(f["id"], f["platform"], item, is_new=False)
-        message = f"Первая проверка: запомнено {len(items)} объявл. Дальше придут только новые."
+        message = (f"Первая проверка: с сайта {fetched}, запомнено {len(items)}. "
+                   f"Дальше придут только объявления, которые появятся позже.")
         database.update_filter_status(f["id"], message, initialized=True)
-        return {"filter": name, "ok": True, "new": 0, "deals": 0, "message": message}
+        return {"filter": name, "ok": True, "new": 0, "deals": 0, "fetched": fetched, "message": message}
 
     # Рыночную цену считаем ДО добавления новых объявлений
     reference, reference_label = reference_price(f)
@@ -138,18 +148,21 @@ def check_filter(f: dict, config: dict) -> dict:
         rest = len(to_notify) - MAX_MESSAGES_PER_FILTER
         notifier.send_message(f"…и ещё {rest} по фильтру «{f['keywords']}» — смотрите в приложении.")
 
-    message = f"Новых: {new_count}, выгодных: {deal_count}"
+    message = f"С сайта: {fetched}"
+    if len(items) != fetched:
+        message += f" (после чёрного списка и цены: {len(items)})"
+    message += f" · новых: {new_count}, выгодных: {deal_count}"
     if to_notify and send_error:
         message += f" (Telegram не отправлен: {send_error})"
     database.update_filter_status(f["id"], message)
-    return {"filter": name, "ok": True, "new": new_count, "deals": deal_count, "message": message}
+    return {"filter": name, "ok": True, "new": new_count, "deals": deal_count, "fetched": fetched, "message": message}
 
 
 def check_all() -> dict:
     """Проверяет все фильтры по очереди. Вызывается таймером и кнопкой."""
     # Если проверка уже идёт — вторую не запускаем
     if not _check_lock.acquire(blocking=False):
-        return {"busy": True, "results": [], "total_new": 0, "total_deals": 0}
+        return {"busy": True, "results": [], "total_new": 0, "total_deals": 0, "total_fetched": 0}
 
     try:
         config = load_config()
@@ -168,6 +181,7 @@ def check_all() -> dict:
             "results": results,
             "total_new": sum(r["new"] for r in results),
             "total_deals": sum(r["deals"] for r in results),
+            "total_fetched": sum(r["fetched"] for r in results),
         }
     finally:
         _check_lock.release()

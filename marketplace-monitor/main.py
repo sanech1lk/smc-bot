@@ -145,10 +145,18 @@ def list_filters():
         # Рыночная цена и сколько объявлений в неё вошло — для подсказки в интерфейсе
         f["market_price"], f["market_samples"] = database.market_stats(f["id"])
         f["min_samples"] = monitor.MIN_MARKET_SAMPLES
-        # Для Facebook добавляем готовую ссылку поиска — её откроет кнопка
+        # Ссылка на тот же поиск на сайте — кнопка «Открыть на сайте»
         if f["platform"] == "facebook":
             f["search_url"] = facebook.build_search_url(
                 f["keywords"], f["min_price"], f["max_price"], f["city"], f["category"]
+            )
+        elif f["platform"] == "olx":
+            f["search_url"] = olx.build_search_url(
+                f["keywords"], f["min_price"], f["max_price"], f["city"], f["category"]
+            )
+        else:
+            f["search_url"] = vinted.build_search_url(
+                f["keywords"], f["min_price"], f["max_price"], f["category"]
             )
     return filters
 

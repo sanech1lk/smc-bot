@@ -770,7 +770,10 @@ function filterRow(f) {
       el("div", { class: "filter-facts", text: marketText }),
       statusText ? el("div", { class: "filter-status" + (statusError ? " error" : ""), text: statusText }) : null),
     el("div", { class: "filter-actions" },
-      f.search_url ? el("a", { class: "btn sm", href: f.search_url, target: "_blank", rel: "noopener", text: "Открыть поиск" }) : null,
+      f.search_url ? el("a", {
+        class: f.platform === "facebook" ? "btn sm" : "ghost btn sm", href: f.search_url, target: "_blank", rel: "noopener",
+        text: f.platform === "facebook" ? "Открыть поиск" : "Открыть на сайте",
+      }) : null,
       el("button", { class: "ghost sm", text: "Изменить", onclick: () => startEdit(f) }),
       el("button", {
         class: "danger sm", text: "Удалить",
@@ -882,7 +885,8 @@ $("check-button").addEventListener("click", async () => {
       toast("Нет фильтров OLX или Vinted для проверки.", true);
     } else {
       const errors = result.results.filter((r) => !r.ok).length;
-      toast("Готово. Новых: " + result.total_new + ", выгодных: " + result.total_deals +
+      toast("Готово. С сайтов получено: " + result.total_fetched + " · новых: " + result.total_new +
+            ", выгодных: " + result.total_deals +
             (errors ? ". С ошибкой: " + errors + " (см. вкладку «Фильтры»)" : ""), errors > 0);
     }
   } catch (error) {
