@@ -8,367 +8,544 @@
   <style>
     /* ================= Цвета (светлая и тёмная тема) ================= */
     :root {
-      --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f8f9fb; --text: #18202b;
-      --muted: #687385; --line: #e2e6ec; --accent: #2563eb; --accent-hover: #1d4ed8;
-      --accent-soft: #e8efff; --good: #15803d; --good-soft: #e3f5e9; --bad: #c62828;
-      --bad-soft: #fdeceb; --warn: #9a6400; --warn-soft: #fff4d6; --on-color: #ffffff;
-      --olx: #0b7a75; --vinted: #6d3fc4; --facebook: #1565c0;
-      --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+      --bg: #f0f2f5; --surface: #ffffff; --surface-2: #f5f6f8; --surface-3: #e9ecf0;
+      --text: #111827; --muted: #65676b; --line: #e3e6ea;
+      --accent: #1f6feb; --accent-hover: #195fd0; --accent-soft: #e7f0ff;
+      --good: #0f8a4a; --good-soft: #e1f6ea; --bad: #d12f2f; --bad-soft: #fdecec;
+      --warn: #a15c00; --warn-soft: #fff3db; --on-color: #ffffff;
+      --olx: #00787a; --vinted: #6d3fc4; --facebook: #1565c0;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .08);
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, .18);
+      --radius: 12px;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0f1318; --surface: #171c23; --surface-2: #1d232c; --text: #e6e9ee;
-        --muted: #949eac; --line: #2a313b; --accent: #4c8dff; --accent-hover: #6aa0ff;
-        --accent-soft: #1b2a45; --good: #4ade80; --good-soft: #153222; --bad: #f87171;
-        --bad-soft: #3a1b1b; --warn: #fbbf24; --warn-soft: #3a2e10; --on-color: #0f1318;
-        --shadow: 0 1px 2px rgba(0, 0, 0, .4);
+        --bg: #18191a; --surface: #242526; --surface-2: #2d2e30; --surface-3: #3a3b3c;
+        --text: #e4e6eb; --muted: #a8abaf; --line: #3a3b3c;
+        --accent: #4b8dff; --accent-hover: #6aa0ff; --accent-soft: #23324a;
+        --good: #3ddc84; --good-soft: #17301f; --bad: #ff6b6b; --bad-soft: #3b1f1f;
+        --warn: #ffc14d; --warn-soft: #3a2e12; --on-color: #101112;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .5);
+        --shadow-lg: 0 12px 40px rgba(0, 0, 0, .6);
       }
     }
 
     /* ================= Основа ================= */
     * { box-sizing: border-box; }
-    body {
-      margin: 0; background: var(--bg); color: var(--text);
-      font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
-    }
+    html, body { margin: 0; }
+    body { background: var(--bg); color: var(--text); font: 15px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; }
     a { color: var(--accent); }
+    svg { flex-shrink: 0; }
     .hidden { display: none !important; }
     .muted { color: var(--muted); }
     .small { font-size: 13px; }
+    .nowrap { white-space: nowrap; }
 
-    /* ================= Шапка и вкладки ================= */
-    .topbar { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
-    .topbar-inner {
-      max-width: 1240px; margin: 0 auto; padding: 12px 16px 0;
-      display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+    /* ================= Раскладка: меню слева + контент ================= */
+    .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      background: var(--surface); border-right: 1px solid var(--line); box-shadow: var(--shadow);
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      display: flex; flex-direction: column; padding: 16px 12px;
     }
-    .logo { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 8px; }
-    .logo-mark {
-      width: 28px; height: 28px; border-radius: 8px; background: var(--accent); color: #fff;
-      display: grid; place-items: center; font-size: 15px;
+    .content { min-width: 0; padding: 20px 24px 60px; }
+
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 14px; font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+    .brand-mark {
+      width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), #12b886); color: #fff; font-size: 18px;
     }
-    #status-line { flex: 1; min-width: 200px; font-size: 13px; color: var(--muted); }
-    .tabs { width: 100%; display: flex; gap: 4px; overflow-x: auto; margin-top: 4px; }
-    .tab {
-      background: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0;
-      color: var(--muted); padding: 10px 14px; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap;
+
+    .search { position: relative; margin: 0 4px 14px; }
+    .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    .search input {
+      width: 100%; padding: 10px 12px 10px 38px; border-radius: 999px; border: 0;
+      background: var(--surface-2); color: var(--text); font: inherit;
     }
-    .tab:hover { color: var(--text); background: none; }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .count {
-      display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 6px; border-radius: 10px;
-      background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); font-size: 12px; text-align: center;
+    .search input:focus { outline: 2px solid var(--accent); }
+
+    .nav { display: flex; flex-direction: column; gap: 2px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px;
+      background: none; color: var(--text); font: inherit; font-weight: 600; text-align: left; cursor: pointer;
     }
-    main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 60px; }
+    .nav-item:hover { background: var(--surface-2); }
+    .nav-item.active { background: var(--accent-soft); color: var(--accent); }
+    .nav-icon {
+      width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+      background: var(--surface-3); color: var(--text);
+    }
+    .nav-item.active .nav-icon { background: var(--accent); color: #fff; }
+    .nav-count { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--muted); }
+    .nav-count.hot { background: var(--good); color: var(--on-color); border-radius: 999px; padding: 1px 8px; }
+
+    .side-title { display: flex; align-items: center; justify-content: space-between; margin: 18px 10px 6px; font-size: 17px; font-weight: 700; }
+    .side-title button { border: 0; background: none; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0; }
+    .saved { display: flex; flex-direction: column; gap: 2px; }
+    .saved-item {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 10px;
+      background: none; color: var(--text); font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+    }
+    .saved-item:hover { background: var(--surface-2); }
+    .saved-item.active { background: var(--surface-3); font-weight: 600; }
+    .saved-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .saved-item .num { font-size: 12px; color: var(--muted); }
+    .saved-item.error .num { color: var(--bad); font-weight: 700; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.olx { background: var(--olx); } .dot.vinted { background: var(--vinted); } .dot.facebook { background: var(--facebook); }
+
+    .side-bottom { margin-top: auto; padding: 16px 4px 0; }
+    .side-bottom button { width: 100%; }
+    #status-line { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; }
+
+    /* ================= Мобильная шапка ================= */
+    .mobile-top { display: none; }
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar { display: none; }
+      .content { padding: 12px 12px 90px; }
+      .mobile-top {
+        display: block; position: sticky; top: 0; z-index: 20; background: var(--surface);
+        border-bottom: 1px solid var(--line); padding: 10px 12px; box-shadow: var(--shadow);
+      }
+      .mobile-row { display: flex; align-items: center; gap: 10px; }
+      .mobile-row .brand { padding: 0; font-size: 18px; flex: 1; }
+      .mobile-row .brand-mark { width: 30px; height: 30px; font-size: 15px; }
+      .mobile-top .search { margin: 10px 0 0; }
+      .bottom-nav {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(5, 1fr);
+        background: var(--surface); border-top: 1px solid var(--line); padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
+      }
+      .bottom-nav button {
+        border: 0; background: none; color: var(--muted); font: inherit; font-size: 11px; font-weight: 600;
+        display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; cursor: pointer;
+      }
+      .bottom-nav button.active { color: var(--accent); }
+    }
+    @media (min-width: 901px) { .bottom-nav, .mobile-chips { display: none !important; } }
 
     /* ================= Кнопки и поля ================= */
-    button, .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 8px 14px; border: 1px solid var(--accent); border-radius: 8px;
-      background: var(--accent); color: #fff; font: inherit; font-weight: 600; font-size: 14px;
-      cursor: pointer; text-decoration: none; white-space: nowrap;
+    .btn, button.btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 9px 16px; border: 0; border-radius: 8px; background: var(--accent); color: #fff;
+      font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none; white-space: nowrap;
     }
-    button:hover, .btn:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-    button:disabled { opacity: .6; cursor: wait; }
-    .ghost { background: var(--surface); color: var(--text); border-color: var(--line); }
-    .ghost:hover { background: var(--surface-2); border-color: var(--muted); }
-    .ghost.on { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
-    .danger { background: var(--surface); color: var(--bad); border-color: var(--line); }
-    .danger:hover { background: var(--bad-soft); border-color: var(--bad); }
-    .sm { padding: 5px 10px; font-size: 13px; }
-    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .btn:hover { background: var(--accent-hover); }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .btn.secondary { background: var(--surface-3); color: var(--text); }
+    .btn.secondary:hover { filter: brightness(.95); }
+    .btn.soft { background: var(--accent-soft); color: var(--accent); }
+    .btn.danger { background: var(--bad-soft); color: var(--bad); }
+    .btn.sm { padding: 6px 12px; font-size: 14px; }
+    .btn.block { width: 100%; }
+    label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 5px; }
     input, select, textarea {
-      width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+      width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
       font: inherit; color: inherit; background: var(--surface);
     }
-    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-    textarea { resize: vertical; min-height: 64px; }
-    .check { display: flex; align-items: center; gap: 8px; }
-    .check input { width: auto; }
-    .check label { margin: 0; color: var(--text); font-size: 14px; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+    textarea { resize: vertical; min-height: 70px; }
+    .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .check input { width: 18px; height: 18px; margin: 0; }
+    .check span { font-size: 14px; }
 
-    /* ================= Блоки ================= */
-    .panel {
-      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-      padding: 18px; margin-bottom: 18px; box-shadow: var(--shadow);
+    /* ================= Заголовок страницы и панель сортировки ================= */
+    .page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .page-head h1 { font-size: 24px; margin: 0; letter-spacing: -.01em; }
+    .page-head .sub { color: var(--muted); font-size: 14px; }
+    .page-head .spacer { flex: 1; }
+    .page-head select { width: auto; padding: 8px 10px; border-radius: 8px; background: var(--surface); }
+
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .mobile-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; border: 0;
+      background: var(--surface); color: var(--text); box-shadow: var(--shadow); font: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
     }
-    .panel h2 { font-size: 17px; margin: 0 0 14px; }
-    .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
-    .note {
-      background: var(--warn-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 12px;
+    .chip:hover { background: var(--surface-2); }
+    .chip.active { background: var(--accent-soft); color: var(--accent); }
+    .chips .check { margin-left: 4px; }
+
+    .notice {
+      background: var(--warn-soft); color: var(--text);
+      border-radius: var(--radius); padding: 12px 14px; font-size: 14px; margin-bottom: 16px;
     }
-    .hint { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 12px; }
+
+    /* ================= Сводка ================= */
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+    .stat .label { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .stat .value { font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+    .stat .value.good { color: var(--good); }
+    @media (max-width: 700px) {
+      .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; }
+      .stat { padding: 8px 6px; text-align: center; }
+      .stat .label { font-size: 11px; line-height: 1.2; }
+      .stat .value { font-size: 16px; }
+      .page-head { margin-bottom: 10px; gap: 8px; }
+      .page-head h1 { font-size: 20px; }
+      .page-head select { font-size: 14px; padding: 6px 8px; }
+      .notice { font-size: 13px; padding: 10px 12px; margin-bottom: 12px; }
+      .chips { margin-bottom: 10px; gap: 6px; }
+      .chip { padding: 6px 12px; font-size: 13px; }
+    }
+
+    /* ================= Лента карточек ================= */
+    .feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px 14px; }
+    @media (max-width: 520px) { .feed { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 10px; } }
+    .card { cursor: pointer; border-radius: var(--radius); outline: none; min-width: 0; }
+    .card:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+    .photo {
+      position: relative; aspect-ratio: 1 / 1; border-radius: var(--radius); overflow: hidden;
+      background: var(--surface-3); box-shadow: var(--shadow);
+    }
+    .photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .25s; }
+    .card:hover .photo img { transform: scale(1.04); }
+    .no-photo { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+    .card.deal .photo { box-shadow: 0 0 0 3px var(--good); }
+    .pill {
+      position: absolute; left: 8px; top: 8px; padding: 3px 9px; border-radius: 999px;
+      font-size: 13px; font-weight: 800; background: var(--good); color: var(--on-color);
+    }
+    .pill.warn { background: var(--warn); }
+    .pill-new {
+      position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; background: var(--accent); color: #fff;
+    }
+    .heart {
+      position: absolute; right: 8px; top: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0;
+      background: rgba(255, 255, 255, .92); color: #3b3b3b; display: grid; place-items: center; cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .2);
+    }
+    .heart:hover { transform: scale(1.08); }
+    .heart.on { color: #e0245e; }
+    .card-body { padding: 8px 2px 0; }
+    .price-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .price { font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+    .old-price { font-size: 13px; color: var(--muted); text-decoration: line-through; }
+    .card-title { font-size: 15px; margin: 1px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .card-sub { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .card-sub span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .profit { font-size: 13px; font-weight: 700; color: var(--good); }
+    .profit.warn { color: var(--warn); }
+
     .empty {
-      text-align: center; color: var(--muted); padding: 48px 16px;
-      border: 1px dashed var(--line); border-radius: 12px; background: var(--surface);
+      text-align: center; padding: 60px 20px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
     }
-    .empty b { color: var(--text); display: block; font-size: 16px; margin-bottom: 4px; }
+    .empty .big { font-size: 40px; }
+    .empty b { display: block; font-size: 18px; margin: 6px 0 4px; }
+    .empty p { color: var(--muted); margin: 0 0 14px; }
 
     .badge {
-      display: inline-block; padding: 1px 8px; border-radius: 20px;
-      color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap;
+      display: inline-block; padding: 1px 8px; border-radius: 999px;
+      color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap;
     }
-    .badge.olx { background: var(--olx); }
-    .badge.vinted { background: var(--vinted); }
-    .badge.facebook { background: var(--facebook); }
+    .badge.olx { background: var(--olx); } .badge.vinted { background: var(--vinted); } .badge.facebook { background: var(--facebook); }
 
-    /* ================= Объявления: панель фильтров ================= */
-    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
-    .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface); }
-    .segmented button {
-      border: 0; border-radius: 0; background: none; color: var(--muted); padding: 7px 14px;
+    /* ================= Окно объявления ================= */
+    dialog {
+      border: 0; padding: 0; border-radius: 16px; background: var(--surface); color: var(--text);
+      width: min(980px, calc(100% - 24px)); max-height: calc(100vh - 24px); box-shadow: var(--shadow-lg);
     }
-    .segmented button + button { border-left: 1px solid var(--line); }
-    .segmented button.active { background: var(--accent-soft); color: var(--accent); }
-    .toolbar select, .toolbar input[type=search] { width: auto; min-width: 170px; flex: 0 1 220px; }
+    dialog::backdrop { background: rgba(0, 0, 0, .6); }
+    .detail { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+    .detail-photo { background: #000; position: relative; min-height: 320px; display: grid; place-items: center; }
+    .detail-photo img { width: 100%; height: 100%; max-height: 80vh; object-fit: contain; display: block; }
+    .detail-photo .no-photo { color: #aaa; }
+    .detail-info { padding: 22px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 24px); }
+    .detail-info h2 { font-size: 22px; margin: 0; line-height: 1.25; }
+    .detail-price { font-size: 28px; font-weight: 800; }
+    .detail-meta { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .close {
+      position: absolute; right: 10px; top: 10px; width: 38px; height: 38px; border-radius: 50%; border: 0; z-index: 2;
+      background: rgba(0, 0, 0, .55); color: #fff; font-size: 20px; cursor: pointer;
+    }
+    .compare { background: var(--surface-2); border-radius: var(--radius); padding: 14px; }
+    .compare-row { display: flex; justify-content: space-between; font-size: 14px; }
+    .compare-row b { font-size: 16px; }
+    .bar { position: relative; height: 10px; border-radius: 999px; background: var(--surface-3); margin: 10px 0 6px; overflow: hidden; }
+    .bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--good); }
+    .bar-fill.over { background: var(--bad); }
+    .compare-note { font-size: 13px; color: var(--muted); }
+    .big-profit { font-size: 18px; font-weight: 800; color: var(--good); }
+    .warning { background: var(--warn-soft); color: var(--text); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+    .detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 760px) {
+      .detail { grid-template-columns: 1fr; }
+      .detail-photo { min-height: 0; aspect-ratio: 4 / 3; }
+      .detail-photo img { max-height: none; }
+      .detail-info { max-height: none; }
+      dialog { max-height: calc(100vh - 16px); overflow-y: auto; }
+    }
 
-    /* ================= Карточки объявлений ================= */
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-    .item {
-      background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
-      display: flex; flex-direction: column; box-shadow: var(--shadow);
-    }
-    .item.deal { border-color: var(--good); box-shadow: 0 0 0 1px var(--good); }
-    .thumb { position: relative; display: block; aspect-ratio: 4 / 3; background: var(--surface-2); }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .thumb .no-photo { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
-    .discount {
-      position: absolute; top: 8px; left: 8px; padding: 2px 9px; border-radius: 20px;
-      background: var(--good); color: var(--on-color); font-weight: 700; font-size: 13px;
-    }
-    .discount.warn { background: var(--warn); }
-    .new-tag {
-      position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 20px;
-      background: var(--accent); color: var(--on-color); font-size: 12px; font-weight: 600;
-    }
-    .item-body { padding: 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-    .item-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
-    .item-title {
-      font-size: 14px; font-weight: 600; margin: 2px 0 0; line-height: 1.35;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em;
-    }
-    .item-price { font-size: 20px; font-weight: 700; }
-    .item-market { font-size: 13px; color: var(--muted); }
-    .item-market .plus { color: var(--good); font-weight: 600; }
-    .item-warn { font-size: 12px; color: var(--warn); }
-    .item-actions { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
-    .item-actions .btn { flex: 1; }
+    /* ================= Панели (фильтры, покупки, настройки) ================= */
+    .panel { background: var(--surface); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow); }
+    .panel h2 { font-size: 18px; margin: 0 0 14px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+    .hint { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-top: 14px; }
+    .note { background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-top: 14px; }
 
-    /* ================= Фильтры ================= */
     .filter-list { display: flex; flex-direction: column; gap: 10px; }
     .filter-row {
-      border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface-2);
-      display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-start;
+      border-radius: var(--radius); padding: 14px 16px; background: var(--surface-2);
+      display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: flex-start;
     }
     .filter-main { flex: 1 1 320px; min-width: 0; }
-    .filter-title { font-weight: 700; font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .filter-facts { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .filter-status { font-size: 13px; margin-top: 4px; }
+    .filter-title { font-weight: 700; font-size: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .filter-facts { font-size: 14px; color: var(--muted); margin-top: 2px; }
+    .filter-status { font-size: 14px; margin-top: 6px; }
     .filter-status.error { color: var(--bad); }
     .filter-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
-    /* ================= Покупки ================= */
-    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
-    .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
-    .tile .label { font-size: 13px; color: var(--muted); }
-    .tile .value { font-size: 24px; font-weight: 700; }
-    .tile .value.good { color: var(--good); }
-    .tile .value.bad { color: var(--bad); }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
-    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
-    td img { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; display: block; background: var(--surface-2); }
-    td input { min-width: 90px; padding: 6px 8px; }
-    td select { min-width: 120px; padding: 6px 8px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+    td img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; display: block; background: var(--surface-3); }
+    td input { min-width: 90px; padding: 7px 9px; }
+    td select { min-width: 120px; padding: 7px 9px; }
     td.title-cell { min-width: 200px; }
-    .nowrap { white-space: nowrap; }
-    .profit-good { color: var(--good); font-weight: 700; }
-    .profit-bad { color: var(--bad); font-weight: 700; }
+    .profit-good { color: var(--good); font-weight: 800; }
+    .profit-bad { color: var(--bad); font-weight: 800; }
 
     /* ================= Всплывающее сообщение ================= */
     #toast {
-      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50;
-      max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 10px;
-      background: var(--text); color: var(--bg); font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.25);
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 100;
+      max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: var(--text); color: var(--bg); box-shadow: var(--shadow-lg);
     }
     #toast.error { background: var(--bad); color: #fff; }
-
-    @media (max-width: 600px) {
-      .toolbar select, .toolbar input[type=search] { flex: 1 1 100%; }
-      .segmented { width: 100%; }
-      .segmented button { flex: 1; padding: 7px 6px; }
-    }
+    @media (max-width: 900px) { #toast { bottom: 84px; } }
   </style>
 </head>
 <body>
 
-<!-- ===================== Шапка ===================== -->
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="logo"><span class="logo-mark">M</span> Marketplace Monitor</div>
-    <span id="status-line">Загрузка…</span>
-    <button id="check-button">Проверить сейчас</button>
-    <nav class="tabs">
-      <button class="tab" data-tab="listings">Объявления <span class="count" id="count-listings">0</span></button>
-      <button class="tab" data-tab="filters">Фильтры <span class="count" id="count-filters">0</span></button>
-      <button class="tab" data-tab="purchases">Покупки <span class="count" id="count-purchases">0</span></button>
-      <button class="tab" data-tab="settings">Настройки</button>
+<!-- Иконки (рисунки SVG), которые используются на странице -->
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-5-5"/></symbol>
+  <symbol id="i-feed" viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></symbol>
+  <symbol id="i-fire" viewBox="0 0 24 24"><path fill="currentColor" d="M12.5 2c.6 3.6-2.6 5.4-2.6 8.3 0 1.4.9 2.3 2 2.3 1.6 0 2.4-1.7 1.8-3.9C16.8 10.4 19 13 19 15.8 19 19.8 15.9 22 12 22s-7-2.2-7-6.2C5 10.6 10.4 8 12.5 2z"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
+  <symbol id="i-heart-on" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.6" d="M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4"/></symbol>
+</svg>
+
+<div class="layout">
+
+  <!-- ===================== Меню слева (компьютер) ===================== -->
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">M</span> Monitor</div>
+    <label class="search">
+      <svg width="18" height="18"><use href="#i-search"/></svg>
+      <input type="search" id="search" placeholder="Поиск в найденном" aria-label="Поиск по найденным объявлениям">
+    </label>
+    <nav class="nav">
+      <button class="nav-item" data-view="feed"><span class="nav-icon"><svg width="20" height="20"><use href="#i-feed"/></svg></span>Лента<span class="nav-count" id="count-feed"></span></button>
+      <button class="nav-item" data-view="deals"><span class="nav-icon"><svg width="20" height="20"><use href="#i-fire"/></svg></span>Выгодные<span class="nav-count hot" id="count-deals"></span></button>
+      <button class="nav-item" data-view="favorite"><span class="nav-icon"><svg width="20" height="20"><use href="#i-heart"/></svg></span>Избранное<span class="nav-count" id="count-favorite"></span></button>
+      <button class="nav-item" data-view="purchases"><span class="nav-icon"><svg width="20" height="20"><use href="#i-bag"/></svg></span>Покупки и прибыль<span class="nav-count" id="count-purchases"></span></button>
+      <button class="nav-item" data-view="filters"><span class="nav-icon"><svg width="20" height="20"><use href="#i-sliders"/></svg></span>Поиски (фильтры)</button>
+      <button class="nav-item" data-view="settings"><span class="nav-icon"><svg width="20" height="20"><use href="#i-gear"/></svg></span>Настройки</button>
     </nav>
+
+    <div class="side-title">Мои поиски <button type="button" id="add-search">+ Новый</button></div>
+    <div class="saved" id="saved-list"></div>
+
+    <div class="side-bottom">
+      <button class="btn block check-button"><svg width="18" height="18"><use href="#i-refresh"/></svg><span>Проверить сейчас</span></button>
+      <div id="status-line">Загрузка…</div>
+    </div>
+  </aside>
+
+  <!-- ===================== Основная часть ===================== -->
+  <div>
+    <!-- Шапка для телефона -->
+    <header class="mobile-top">
+      <div class="mobile-row">
+        <div class="brand"><span class="brand-mark">M</span> Monitor</div>
+        <button class="btn sm check-button"><svg width="16" height="16"><use href="#i-refresh"/></svg><span>Проверить</span></button>
+      </div>
+      <label class="search">
+        <svg width="18" height="18"><use href="#i-search"/></svg>
+        <input type="search" id="search-mobile" placeholder="Поиск в найденном" aria-label="Поиск по найденным объявлениям">
+      </label>
+    </header>
+
+    <main class="content">
+      <div class="notice hidden" id="setup-note"></div>
+
+      <!-- ===== Лента / Выгодные / Избранное ===== -->
+      <section id="page-feed">
+        <div class="page-head">
+          <h1 id="feed-title">Лента</h1>
+          <span class="sub" id="feed-sub"></span>
+          <span class="spacer"></span>
+          <select id="sort" aria-label="Сортировка">
+            <option value="new">Сначала новые</option>
+            <option value="discount">Самая большая скидка</option>
+            <option value="cheap">Сначала дешёвые</option>
+            <option value="expensive">Сначала дорогие</option>
+          </select>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="chips mobile-chips" id="mobile-saved"></div>
+        <div class="chips" id="platform-chips">
+          <button class="chip active" data-platform="">Все площадки</button>
+          <button class="chip" data-platform="olx">OLX</button>
+          <button class="chip" data-platform="vinted">Vinted</button>
+          <label class="check"><input type="checkbox" id="only-new"><span>Только новые</span></label>
+        </div>
+        <div class="feed" id="feed"></div>
+        <div class="empty hidden" id="feed-empty"></div>
+      </section>
+
+      <!-- ===== Покупки ===== -->
+      <section id="page-purchases" class="hidden">
+        <div class="page-head"><h1>Покупки и прибыль</h1></div>
+        <div class="stats" id="tiles"></div>
+        <div class="panel">
+          <p class="muted small" style="margin-top: 0">
+            Нажмите «Купил» в окне объявления — оно появится здесь. Когда продадите,
+            впишите цену продажи, выберите «Продано» и нажмите «Сохранить» — прибыль посчитается сама.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th></th><th>Товар</th><th>Купил за, zł</th><th>Продал за, zł</th><th>Статус</th><th>Заметка</th><th>Прибыль</th><th></th></tr>
+              </thead>
+              <tbody id="purchases-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Поиски (фильтры) ===== -->
+      <section id="page-filters" class="hidden">
+        <div class="page-head"><h1>Поиски</h1><span class="sub">что и где искать</span></div>
+        <div class="panel">
+          <h2 id="form-title">Новый поиск</h2>
+          <form id="filter-form">
+            <div class="form-grid">
+              <div>
+                <label for="platform">Площадка</label>
+                <select id="platform"></select>
+              </div>
+              <div>
+                <label for="keywords">Что ищем</label>
+                <input id="keywords" required maxlength="200" placeholder="например: iphone 13 128gb">
+              </div>
+              <div>
+                <label for="min_price">Цена от, zł</label>
+                <input id="min_price" type="number" min="0" step="1">
+              </div>
+              <div>
+                <label for="max_price">Цена до, zł</label>
+                <input id="max_price" type="number" min="0" step="1">
+              </div>
+              <div id="city-box">
+                <label for="city">Город (по-польски)</label>
+                <input id="city" maxlength="100" placeholder="например: Warszawa">
+              </div>
+              <div id="category-box">
+                <label for="category">Категория</label>
+                <select id="category"></select>
+              </div>
+            </div>
+
+            <div class="form-grid" id="deal-box" style="margin-top: 14px">
+              <div>
+                <label for="notify_mode">Что присылать в Telegram</label>
+                <select id="notify_mode">
+                  <option value="deals">🔥 Только дешевле рынка</option>
+                  <option value="all">Все новые объявления</option>
+                </select>
+              </div>
+              <div id="discount-box">
+                <label for="discount_pct">Дешевле рынка минимум на, %</label>
+                <input id="discount_pct" type="number" min="1" max="95" step="1" value="20">
+              </div>
+              <div>
+                <label for="resale_price">Моя цена продажи, zł (необязательно)</label>
+                <input id="resale_price" type="number" min="1" step="1" placeholder="если знаете сами">
+              </div>
+            </div>
+
+            <div class="hint" id="deal-hint">
+              <b>Как считается «рыночная цена».</b> Приложение запоминает цены похожих объявлений за 30 дней
+              и берёт медиану — «серединную» цену (половина дешевле, половина дороже). Нужно минимум 5 объявлений,
+              обычно они набираются уже после первой проверки. Если знаете, за сколько сможете продать — впишите
+              «Мою цену продажи». Совет: пишите запрос точнее («iphone 13 128gb», а не «iphone»).
+            </div>
+            <div class="note hidden" id="platform-note"></div>
+
+            <div class="row">
+              <button type="submit" class="btn" id="filter-submit">Добавить поиск</button>
+              <button type="button" class="btn secondary hidden" id="filter-cancel">Отмена</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Мои поиски</h2>
+          <div class="filter-list" id="filter-list"></div>
+        </div>
+      </section>
+
+      <!-- ===== Настройки ===== -->
+      <section id="page-settings" class="hidden">
+        <div class="page-head"><h1>Настройки</h1></div>
+        <div class="panel">
+          <form id="settings-form">
+            <div class="form-grid">
+              <div>
+                <label for="telegram_token">Токен Telegram-бота</label>
+                <input id="telegram_token" type="password" autocomplete="off" placeholder="123456:ABC-DEF…">
+              </div>
+              <div>
+                <label for="telegram_chat_id">Chat ID</label>
+                <input id="telegram_chat_id" autocomplete="off" placeholder="например: 123456789">
+              </div>
+              <div>
+                <label for="check_interval_minutes">Проверять каждые, минут</label>
+                <input id="check_interval_minutes" type="number" min="3" max="1440" step="1" required>
+              </div>
+            </div>
+            <div style="margin-top: 14px">
+              <label for="blacklist">Чёрный список слов (через запятую) — объявления с ними в названии пропускаются</label>
+              <textarea id="blacklist" placeholder="uszkodzony, na części, zamienię, etui, szkło"></textarea>
+            </div>
+            <label class="check" style="margin-top: 14px">
+              <input type="checkbox" id="olx_use_playwright">
+              <span>Всегда открывать OLX через браузер Playwright (только если OLX блокирует — см. README)</span>
+            </label>
+            <div class="row">
+              <button type="submit" class="btn">Сохранить</button>
+              <button type="button" class="btn secondary" id="test-button">Тест уведомления</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
   </div>
-</header>
+</div>
 
-<main>
-  <div class="note hidden" id="setup-note" style="margin: 0 0 18px"></div>
+<!-- Нижнее меню (телефон) -->
+<nav class="bottom-nav">
+  <button data-view="feed"><svg width="22" height="22"><use href="#i-feed"/></svg>Лента</button>
+  <button data-view="deals"><svg width="22" height="22"><use href="#i-fire"/></svg>Выгодные</button>
+  <button data-view="favorite"><svg width="22" height="22"><use href="#i-heart"/></svg>Избранное</button>
+  <button data-view="purchases"><svg width="22" height="22"><use href="#i-bag"/></svg>Покупки</button>
+  <button data-view="filters"><svg width="22" height="22"><use href="#i-sliders"/></svg>Поиски</button>
+</nav>
 
-  <!-- ===================== Объявления ===================== -->
-  <section id="tab-listings">
-    <div class="toolbar">
-      <div class="segmented" id="view-switch">
-        <button data-view="all" class="active">Все</button>
-        <button data-view="deals">🔥 Выгодные</button>
-        <button data-view="favorite">⭐ Избранное</button>
-      </div>
-      <select id="filter-select" aria-label="Фильтр"></select>
-      <input type="search" id="search" placeholder="Поиск по названию" aria-label="Поиск по названию">
-      <div class="check">
-        <input type="checkbox" id="only-new">
-        <label for="only-new">Только новые</label>
-      </div>
-    </div>
-    <div class="cards" id="cards"></div>
-    <div class="empty hidden" id="cards-empty"></div>
-  </section>
-
-  <!-- ===================== Фильтры ===================== -->
-  <section id="tab-filters" class="hidden">
-    <div class="panel">
-      <h2 id="form-title">Новый фильтр</h2>
-      <form id="filter-form">
-        <div class="grid-form">
-          <div>
-            <label for="platform">Маркетплейс</label>
-            <select id="platform"></select>
-          </div>
-          <div>
-            <label for="keywords">Ключевые слова</label>
-            <input id="keywords" required maxlength="200" placeholder="например: iphone 13 128gb">
-          </div>
-          <div>
-            <label for="min_price">Цена от, zł</label>
-            <input id="min_price" type="number" min="0" step="1">
-          </div>
-          <div>
-            <label for="max_price">Цена до, zł</label>
-            <input id="max_price" type="number" min="0" step="1">
-          </div>
-          <div id="city-box">
-            <label for="city">Город (по-польски)</label>
-            <input id="city" maxlength="100" placeholder="например: Warszawa">
-          </div>
-          <div id="category-box">
-            <label for="category">Категория</label>
-            <select id="category"></select>
-          </div>
-        </div>
-
-        <div class="grid-form" id="deal-box" style="margin-top: 12px">
-          <div>
-            <label for="notify_mode">Что присылать в Telegram</label>
-            <select id="notify_mode">
-              <option value="deals">🔥 Только дешевле рынка</option>
-              <option value="all">Все новые объявления</option>
-            </select>
-          </div>
-          <div id="discount-box">
-            <label for="discount_pct">Дешевле рынка минимум на, %</label>
-            <input id="discount_pct" type="number" min="1" max="95" step="1" value="20">
-          </div>
-          <div>
-            <label for="resale_price">Моя цена продажи, zł (необязательно)</label>
-            <input id="resale_price" type="number" min="1" step="1" placeholder="если знаете сами">
-          </div>
-        </div>
-
-        <div class="hint" id="deal-hint">
-          <b>Как считается «рыночная цена».</b> Приложение запоминает цены всех похожих объявлений
-          за 30 дней и берёт медиану — «серединную» цену (половина дешевле, половина дороже).
-          Нужно минимум 5 объявлений, обычно они набираются уже после первой проверки.
-          Если вы точно знаете, за сколько сможете продать, впишите «Мою цену продажи» — тогда
-          сравнение пойдёт с ней. Совет: пишите запрос точнее («iphone 13 128gb», а не «iphone»)
-          и не сужайте диапазон цен слишком сильно — иначе рыночная цена будет неточной.
-        </div>
-        <div class="note hidden" id="platform-note"></div>
-
-        <div class="row">
-          <button type="submit" id="filter-submit">Добавить в отслеживание</button>
-          <button type="button" class="ghost hidden" id="filter-cancel">Отмена</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="panel">
-      <h2>Активные фильтры</h2>
-      <div class="filter-list" id="filter-list"></div>
-    </div>
-  </section>
-
-  <!-- ===================== Покупки ===================== -->
-  <section id="tab-purchases" class="hidden">
-    <div class="tiles" id="tiles"></div>
-    <div class="panel">
-      <h2>Мои покупки</h2>
-      <p class="muted small" style="margin-top: -8px">
-        Нажмите «Куплено» на карточке объявления — оно появится здесь. Когда продадите,
-        впишите цену продажи и выберите статус «Продано»: прибыль посчитается сама.
-      </p>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th></th><th>Товар</th><th>Купил за, zł</th><th>Продал за, zł</th><th>Статус</th><th>Заметка</th><th>Прибыль</th><th></th></tr>
-          </thead>
-          <tbody id="purchases-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===================== Настройки ===================== -->
-  <section id="tab-settings" class="hidden">
-    <div class="panel">
-      <h2>Telegram и проверка</h2>
-      <form id="settings-form">
-        <div class="grid-form">
-          <div>
-            <label for="telegram_token">Токен Telegram-бота</label>
-            <input id="telegram_token" type="password" autocomplete="off" placeholder="123456:ABC-DEF…">
-          </div>
-          <div>
-            <label for="telegram_chat_id">Chat ID</label>
-            <input id="telegram_chat_id" autocomplete="off" placeholder="например: 123456789">
-          </div>
-          <div>
-            <label for="check_interval_minutes">Интервал проверки, минут</label>
-            <input id="check_interval_minutes" type="number" min="3" max="1440" step="1" required>
-          </div>
-        </div>
-        <div style="margin-top: 12px">
-          <label for="blacklist">Чёрный список слов (через запятую) — объявления с этими словами в названии пропускаются</label>
-          <textarea id="blacklist" placeholder="uszkodzony, na części, zamienię, etui, szkło"></textarea>
-        </div>
-        <div class="check" style="margin-top: 12px">
-          <input type="checkbox" id="olx_use_playwright">
-          <label for="olx_use_playwright">Всегда открывать OLX через браузер Playwright (только если OLX блокирует — см. README)</label>
-        </div>
-        <div class="row">
-          <button type="submit">Сохранить настройки</button>
-          <button type="button" class="ghost" id="test-button">Тест уведомления</button>
-        </div>
-      </form>
-    </div>
-  </section>
-</main>
+<!-- Окно объявления -->
+<dialog id="detail" aria-label="Объявление"></dialog>
 
 <div id="toast" class="hidden"></div>
 
@@ -379,12 +556,15 @@
 // =====================================================================
 
 const state = {
-  meta: {},          // площадки и категории
+  meta: {},           // площадки и категории
   filters: [],
   listings: [],
   settings: {},
-  view: "all",       // all / deals / favorite
-  editingId: null,   // id фильтра, который сейчас редактируется
+  view: "feed",       // feed / deals / favorite / purchases / filters / settings
+  filterId: "",       // выбранный "мой поиск" ("" = все)
+  platform: "",       // выбранная площадка ("" = все)
+  query: "",          // текст из строки поиска
+  editingId: null,    // id фильтра, который сейчас редактируется
 };
 const $ = (id) => document.getElementById(id);
 
@@ -425,6 +605,17 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
+// Иконка из набора <symbol> в начале страницы
+function icon(name, size = 20) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", size);
+  svg.setAttribute("height", size);
+  const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  use.setAttribute("href", "#i-" + name);
+  svg.append(use);
+  return svg;
+}
+
 function zl(value) {
   if (value === null || value === undefined || isNaN(value)) return "—";
   return Math.round(value).toLocaleString("pl-PL") + " zł";
@@ -443,6 +634,10 @@ function timeAgo(text) {
   return text.slice(8, 10) + "." + text.slice(5, 7) + " " + text.slice(11, 16);
 }
 
+function isToday(text) {
+  return text.slice(0, 10) === new Date().toLocaleDateString("sv-SE");   // формат ГГГГ-ММ-ДД
+}
+
 let toastTimer = null;
 function toast(text, isError = false) {
   const box = $("toast");
@@ -452,8 +647,12 @@ function toast(text, isError = false) {
   toastTimer = setTimeout(() => box.classList.add("hidden"), isError ? 7000 : 3500);
 }
 
+function platformName(platform) {
+  return state.meta[platform]?.name || platform;
+}
+
 function platformBadge(platform) {
-  return el("span", { class: "badge " + platform, text: state.meta[platform]?.name || platform });
+  return el("span", { class: "badge " + platform, text: platformName(platform) });
 }
 
 function numberOrNull(id) {
@@ -461,25 +660,74 @@ function numberOrNull(id) {
   return value === "" ? null : Number(value);
 }
 
-// Запоминаем мелочи (открытая вкладка) в браузере. Если браузер не даёт — не страшно.
+// Запоминаем мелочи (открытая страница, сортировка) в браузере. Если браузер не даёт — не страшно.
 function remember(key, value) { try { localStorage.setItem("mm-" + key, value); } catch (e) {} }
 function recall(key) { try { return localStorage.getItem("mm-" + key); } catch (e) { return null; } }
 
-// ---------- Вкладки ----------
-function openTab(name) {
-  for (const tab of document.querySelectorAll(".tab")) {
-    tab.classList.toggle("active", tab.dataset.tab === name);
-  }
-  for (const id of ["listings", "filters", "purchases", "settings"]) {
-    $("tab-" + id).classList.toggle("hidden", id !== name);
-  }
-  remember("tab", name);
-}
-for (const tab of document.querySelectorAll(".tab")) {
-  tab.addEventListener("click", () => openTab(tab.dataset.tab));
+function photoBox(url, size) {
+  const photo = safeUrl(url);
+  const placeholder = () => el("span", { class: "no-photo" }, icon("image", size));
+  if (!photo) return placeholder();
+  return el("img", {
+    src: photo, alt: "", loading: "lazy", referrerpolicy: "no-referrer",
+    onerror: (event) => event.target.replaceWith(placeholder()),
+  });
 }
 
-// ---------- Оценка объявления относительно рынка ----------
+// =====================================================================
+//  НАВИГАЦИЯ
+// =====================================================================
+const FEED_VIEWS = ["feed", "deals", "favorite"];
+
+function openView(view) {
+  state.view = view;
+  remember("view", view);
+  for (const button of document.querySelectorAll("[data-view]")) {
+    button.classList.toggle("active", button.dataset.view === view);
+  }
+  $("page-feed").classList.toggle("hidden", !FEED_VIEWS.includes(view));
+  for (const name of ["purchases", "filters", "settings"]) {
+    $("page-" + name).classList.toggle("hidden", view !== name);
+  }
+  if (FEED_VIEWS.includes(view)) renderFeed();
+  window.scrollTo({ top: 0 });
+}
+for (const button of document.querySelectorAll("[data-view]")) {
+  button.addEventListener("click", () => openView(button.dataset.view));
+}
+
+function selectSaved(filterId) {
+  state.filterId = String(filterId || "");
+  if (!FEED_VIEWS.includes(state.view)) openView("feed");
+  renderSaved();
+  renderFeed();
+}
+
+$("add-search").addEventListener("click", () => { resetForm(); openView("filters"); $("keywords").focus(); });
+
+// Строка поиска: на компьютере и на телефоне — одна и та же логика
+for (const id of ["search", "search-mobile"]) {
+  $(id).addEventListener("input", (event) => {
+    state.query = event.target.value.trim().toLowerCase();
+    $("search").value = $("search-mobile").value = event.target.value;
+    if (!FEED_VIEWS.includes(state.view)) openView("feed");
+    renderFeed();
+  });
+}
+
+for (const chip of document.querySelectorAll("#platform-chips .chip")) {
+  chip.addEventListener("click", () => {
+    state.platform = chip.dataset.platform;
+    for (const c of document.querySelectorAll("#platform-chips .chip")) c.classList.toggle("active", c === chip);
+    renderFeed();
+  });
+}
+$("only-new").addEventListener("change", renderFeed);
+$("sort").addEventListener("change", () => { remember("sort", $("sort").value); renderFeed(); });
+
+// =====================================================================
+//  ОЦЕНКА ОБЪЯВЛЕНИЯ ОТНОСИТЕЛЬНО РЫНКА
+// =====================================================================
 // Возвращает: с какой ценой сравниваем, скидку в %, выгоду в zł и выгодное ли оно.
 function evaluate(listing) {
   const f = state.filters.find((x) => x.id === listing.filter_id);
@@ -492,120 +740,214 @@ function evaluate(listing) {
   if ((discount === null || discount === undefined) && reference && price) {
     discount = Math.round((reference - price) / reference * 100);
   }
+  discount = discount ?? null;
   const threshold = f ? f.discount_pct : 20;
   return {
+    filter: f,
     reference,
-    discount: discount ?? null,
+    discount,
     profit: reference && price ? reference - price : null,
-    isDeal: discount !== null && discount !== undefined && discount >= threshold,
-    label: f && f.resale_price ? "ваша цена" : "рынок",
+    isDeal: discount !== null && discount >= threshold,
+    suspicious: discount !== null && discount >= 70,
+    label: f && f.resale_price ? "ваша цена продажи" : "рыночная цена",
   };
 }
 
-// =====================================================================
-//  ОБЪЯВЛЕНИЯ
-// =====================================================================
-function renderListings() {
-  const filterId = $("filter-select").value;
-  const query = $("search").value.trim().toLowerCase();
-  const onlyNew = $("only-new").checked;
-
-  // Купленные и проданные живут во вкладке "Покупки"
-  let items = state.listings.filter((l) => !["bought", "sold", "hidden"].includes(l.status));
-  $("count-listings").textContent = items.length;
-
-  if (filterId) items = items.filter((l) => String(l.filter_id) === filterId);
-  if (query) items = items.filter((l) => (l.title || "").toLowerCase().includes(query));
-  if (onlyNew) items = items.filter((l) => l.is_new);
-  if (state.view === "favorite") items = items.filter((l) => l.status === "favorite");
-
-  const evaluated = items.map((l) => ({ l, e: evaluate(l) }));
-  let shown = evaluated;
-  if (state.view === "deals") {
-    shown = evaluated.filter((x) => x.e.isDeal).sort((a, b) => b.e.discount - a.e.discount);
-  }
-
-  const cards = $("cards");
-  cards.replaceChildren(...shown.map(({ l, e }) => listingCard(l, e)));
-
-  const empty = $("cards-empty");
-  empty.classList.toggle("hidden", shown.length > 0);
-  if (!shown.length) {
-    let title = "Объявлений пока нет";
-    let text = "Добавьте фильтр во вкладке «Фильтры» и нажмите «Проверить сейчас».";
-    if (state.filters.length) text = "Нажмите «Проверить сейчас» или подождите автоматической проверки.";
-    if (state.view === "deals") {
-      title = "Выгодных пока нет";
-      text = "Здесь появятся объявления дешевле рынка на заданный в фильтре процент.";
-    }
-    if (state.view === "favorite") {
-      title = "В избранном пусто";
-      text = "Нажмите ☆ на карточке, чтобы отложить объявление.";
-    }
-    if (query || filterId || onlyNew) text = "Ничего не подходит под условия — попробуйте их ослабить.";
-    empty.replaceChildren(el("b", { text: title }), text);
-  }
+// Объявления для ленты (без купленных, проданных и скрытых)
+function feedListings() {
+  return state.listings.filter((l) => !["bought", "sold", "hidden"].includes(l.status));
 }
 
-function listingCard(l, e) {
-  const url = safeUrl(l.url);
-  const photo = safeUrl(l.photo);
+// =====================================================================
+//  ЛЕНТА
+// =====================================================================
+function renderCounts() {
+  const all = feedListings().map((l) => ({ l, e: evaluate(l) }));
+  const deals = all.filter((x) => x.e.isDeal).length;
+  $("count-feed").textContent = all.length || "";
+  $("count-deals").textContent = deals || "";
+  $("count-deals").classList.toggle("hidden", !deals);
+  $("count-favorite").textContent = all.filter((x) => x.l.status === "favorite").length || "";
+  $("count-purchases").textContent = state.listings.filter((l) => l.status === "bought" || l.status === "sold").length || "";
+}
 
-  const thumb = el("a", { class: "thumb", href: url, target: "_blank", rel: "noopener noreferrer" },
-    photo
-      ? el("img", { src: photo, alt: "", loading: "lazy", referrerpolicy: "no-referrer",
-                    onerror: (event) => event.target.replaceWith(el("span", { class: "no-photo", text: "нет фото" })) })
-      : el("span", { class: "no-photo", text: "нет фото" }),
-    e.discount !== null && e.discount >= 5
-      ? el("span", { class: "discount" + (e.discount >= 70 ? " warn" : ""), text: "−" + e.discount + "%" })
-      : null,
-    l.is_new ? el("span", { class: "new-tag", text: "новое" }) : null,
+function renderFeed() {
+  renderCounts();
+  if (!FEED_VIEWS.includes(state.view)) return;
+
+  let items = feedListings().map((l) => ({ l, e: evaluate(l) }));
+  if (state.filterId) items = items.filter((x) => String(x.l.filter_id) === state.filterId);
+  if (state.platform) items = items.filter((x) => x.l.platform === state.platform);
+
+  // Сводка — по выбранному поиску/площадке, до остальных отборов
+  renderStats(items);
+
+  if (state.query) items = items.filter((x) => (x.l.title || "").toLowerCase().includes(state.query));
+  if ($("only-new").checked) items = items.filter((x) => x.l.is_new);
+  if (state.view === "deals") items = items.filter((x) => x.e.isDeal);
+  if (state.view === "favorite") items = items.filter((x) => x.l.status === "favorite");
+
+  const sort = $("sort").value;
+  const price = (x) => x.l.price_value ?? Infinity;
+  if (sort === "discount") items.sort((a, b) => (b.e.discount ?? -999) - (a.e.discount ?? -999));
+  if (sort === "cheap") items.sort((a, b) => price(a) - price(b));
+  if (sort === "expensive") items.sort((a, b) => (b.l.price_value ?? -1) - (a.l.price_value ?? -1));
+
+  const titles = { feed: "Лента", deals: "Выгодные", favorite: "Избранное" };
+  const saved = state.filters.find((f) => String(f.id) === state.filterId);
+  $("feed-title").textContent = titles[state.view];
+  $("feed-sub").textContent = (saved ? "«" + saved.keywords + "» · " : "") + items.length + " объявл.";
+
+  $("feed").replaceChildren(...items.map(({ l, e }) => feedCard(l, e)));
+  renderEmpty(items.length);
+}
+
+function renderStats(items) {
+  const today = items.filter((x) => x.l.is_new && isToday(x.l.found_at)).length;
+  const deals = items.filter((x) => x.e.isDeal && !x.e.suspicious);
+  const best = deals.reduce((max, x) => Math.max(max, x.e.discount), 0);
+  const profit = deals.reduce((sum, x) => sum + Math.max(0, x.e.profit || 0), 0);
+  const stat = (label, value, cls = "") =>
+    el("div", { class: "stat" }, el("div", { class: "label", text: label }), el("div", { class: "value " + cls, text: value }));
+  $("stats").replaceChildren(
+    stat("Новых сегодня", String(today)),
+    stat("Выгодных", String(deals.length), deals.length ? "good" : ""),
+    stat("Лучшая скидка", best ? "−" + best + "%" : "—", best ? "good" : ""),
+    stat("Возможная выгода", profit ? "+" + zl(profit) : "—", profit ? "good" : ""),
   );
+}
 
-  const market = e.reference
-    ? el("div", { class: "item-market" },
-        e.label + " ~" + zl(e.reference),
-        e.profit > 0 ? [" · ", el("span", { class: "plus", text: "выгода +" + zl(e.profit) })] : null)
-    : el("div", { class: "item-market", text: "рыночная цена пока неизвестна" });
+function renderEmpty(count) {
+  const empty = $("feed-empty");
+  empty.classList.toggle("hidden", count > 0);
+  if (count) return;
+  let big = "🔎", title = "Пока ничего нет", text = "Добавьте поиск и нажмите «Проверить сейчас».";
+  let action = el("button", { class: "btn", text: "Добавить поиск", onclick: () => { resetForm(); openView("filters"); } });
+  if (state.filters.length) {
+    text = "Нажмите «Проверить сейчас» или подождите автоматической проверки.";
+    action = null;
+  }
+  if (state.view === "deals") {
+    big = "🔥"; title = "Выгодных пока нет";
+    text = "Здесь появятся объявления дешевле рынка на процент, заданный в поиске.";
+  }
+  if (state.view === "favorite") {
+    big = "♡"; title = "В избранном пусто";
+    text = "Нажмите на сердечко на фото, чтобы отложить объявление.";
+  }
+  if (state.query || state.platform || $("only-new").checked) {
+    text = "Ничего не подходит под условия — попробуйте их ослабить.";
+  }
+  empty.replaceChildren(el("div", { class: "big", text: big }), el("b", { text: title }), el("p", { text }), action);
+}
 
+function feedCard(l, e) {
   const isFavorite = l.status === "favorite";
-  return el("article", { class: "item" + (e.isDeal ? " deal" : "") },
-    thumb,
-    el("div", { class: "item-body" },
-      el("div", { class: "item-meta" },
-        platformBadge(l.platform),
-        l.city ? el("span", { text: l.city }) : null,
-        el("span", { text: "· " + timeAgo(l.found_at) })),
-      el("h3", { class: "item-title", title: l.title, text: l.title || "Без названия" }),
-      el("div", { class: "item-price", text: l.price || "цена не указана" }),
-      market,
-      e.discount >= 70 ? el("div", { class: "item-warn", text: "⚠️ Подозрительно дёшево: аксессуар, запчасть или мошенник?" }) : null,
-      el("div", { class: "item-actions" },
-        url ? el("a", { class: "btn sm", href: url, target: "_blank", rel: "noopener noreferrer", text: "Открыть" }) : null,
-        el("button", {
-          class: "ghost sm" + (isFavorite ? " on" : ""), title: isFavorite ? "Убрать из избранного" : "В избранное",
-          text: isFavorite ? "★" : "☆",
-          onclick: () => setListing(l, { status: isFavorite ? "new" : "favorite" }),
-        }),
-        el("button", {
-          class: "ghost sm", text: "Куплено", title: "Перенести в «Покупки»",
-          onclick: () => setListing(l, { status: "bought", buy_price: l.price_value }, "Перенесено в «Покупки»"),
-        }),
-        el("button", {
-          class: "ghost sm", text: "✕", title: "Скрыть объявление",
-          onclick: () => setListing(l, { status: "hidden" }, "Объявление скрыто"),
-        }),
+  const showDiscount = e.discount !== null && e.discount >= 5;
+  const priceText = l.price_value ? zl(l.price_value) : (l.price || "Цена не указана");
+
+  const heart = el("button", {
+    class: "heart" + (isFavorite ? " on" : ""), type: "button",
+    title: isFavorite ? "Убрать из избранного" : "В избранное",
+    "aria-label": isFavorite ? "Убрать из избранного" : "В избранное",
+    onclick: (event) => {
+      event.stopPropagation();   // не открывать окно объявления
+      setListing(l, { status: isFavorite ? "new" : "favorite" }, isFavorite ? "" : "Добавлено в избранное");
+    },
+  }, icon(isFavorite ? "heart-on" : "heart", 20));
+
+  return el("article", {
+    class: "card" + (e.isDeal && !e.suspicious ? " deal" : ""), tabindex: 0,
+    onclick: () => openDetail(l),
+    onkeydown: (event) => { if (event.key === "Enter") openDetail(l); },
+  },
+    el("div", { class: "photo" },
+      photoBox(l.photo, 40),
+      showDiscount ? el("span", { class: "pill" + (e.suspicious ? " warn" : ""), text: "−" + e.discount + "%" }) : null,
+      l.is_new ? el("span", { class: "pill-new", text: "новое" }) : null,
+      heart),
+    el("div", { class: "card-body" },
+      el("div", { class: "price-line" },
+        el("span", { class: "price", text: priceText }),
+        showDiscount && e.reference ? el("span", { class: "old-price", text: zl(e.reference) }) : null),
+      el("div", { class: "card-title", title: l.title, text: l.title || "Без названия" }),
+      el("div", { class: "card-sub" },
+        el("span", { class: "dot " + l.platform, title: platformName(l.platform) }),
+        el("span", { text: [l.city, timeAgo(l.found_at)].filter(Boolean).join(" · ") })),
+      e.isDeal
+        ? el("div", { class: "profit" + (e.suspicious ? " warn" : ""),
+                      text: e.suspicious ? "⚠️ подозрительно дёшево" : "выгода +" + zl(e.profit) })
+        : null),
+  );
+}
+
+// =====================================================================
+//  ОКНО ОБЪЯВЛЕНИЯ
+// =====================================================================
+function openDetail(l) {
+  const e = evaluate(l);
+  const url = safeUrl(l.url);
+  const isFavorite = l.status === "favorite";
+  const dialog = $("detail");
+
+  let compare = el("div", { class: "compare" },
+    el("div", { class: "compare-note", text: "Рыночная цена пока неизвестна — нужно минимум 5 похожих объявлений." }));
+  if (e.reference && l.price_value) {
+    const ratio = l.price_value / e.reference;
+    const width = Math.min(100, Math.round(ratio * 100));
+    compare = el("div", { class: "compare" },
+      el("div", { class: "compare-row" },
+        el("span", {}, "Эта цена", el("br"), el("b", { text: zl(l.price_value) })),
+        el("span", { style: "text-align: right" }, e.label, el("br"), el("b", { text: zl(e.reference) }))),
+      el("div", { class: "bar" }, el("div", { class: "bar-fill" + (ratio > 1 ? " over" : ""), style: "width: " + width + "%" })),
+      el("div", { class: "compare-note",
+        text: ratio <= 1
+          ? "Дешевле на " + Math.round((1 - ratio) * 100) + "%"
+          : "Дороже на " + Math.round((ratio - 1) * 100) + "%" }),
+      e.profit > 0 ? el("div", { class: "big-profit", text: "Возможная выгода: +" + zl(e.profit) }) : null);
+  }
+
+  const close = () => dialog.close();
+  dialog.replaceChildren(
+    el("div", { class: "detail" },
+      el("div", { class: "detail-photo" },
+        el("button", { class: "close", type: "button", "aria-label": "Закрыть", text: "✕", onclick: close }),
+        photoBox(l.photo, 64)),
+      el("div", { class: "detail-info" },
+        el("div", { class: "detail-meta" },
+          platformBadge(l.platform),
+          e.filter ? el("span", { text: "поиск «" + e.filter.keywords + "»" }) : null),
+        el("h2", { text: l.title || "Без названия" }),
+        el("div", { class: "detail-price", text: l.price || "Цена не указана" }),
+        el("div", { class: "detail-meta", text: [l.city, "найдено " + timeAgo(l.found_at)].filter(Boolean).join(" · ") }),
+        compare,
+        e.suspicious ? el("div", { class: "warning",
+          text: "⚠️ Подозрительно дёшево. Проверьте, что это не аксессуар, запчасть или «zamienię». " +
+                "Не платите заранее незнакомым продавцам — лучше лично или через защиту покупателя площадки." }) : null,
+        url ? el("a", { class: "btn block", href: url, target: "_blank", rel: "noopener noreferrer",
+                        text: "Открыть на " + platformName(l.platform) }) : null,
+        el("div", { class: "detail-actions" },
+          el("button", { class: "btn secondary", type: "button", text: isFavorite ? "♥ В избранном" : "♡ В избранное",
+            onclick: async () => { await setListing(l, { status: isFavorite ? "new" : "favorite" }); openDetail(l); } }),
+          el("button", { class: "btn soft", type: "button", text: "Купил",
+            onclick: async () => { close(); await setListing(l, { status: "bought", buy_price: l.price_value }, "Перенесено в «Покупки»"); } }),
+          el("button", { class: "btn danger", type: "button", text: "Скрыть",
+            onclick: async () => { close(); await setListing(l, { status: "hidden" }, "Объявление скрыто"); } })),
       ),
     ),
   );
+  if (!dialog.open) dialog.showModal();
 }
+// Клик по тёмному фону вокруг окна закрывает его
+$("detail").addEventListener("click", (event) => { if (event.target === $("detail")) $("detail").close(); });
 
 async function setListing(listing, changes, message = "") {
   try {
     await api("/api/listings/" + listing.id, "PATCH", changes);
     Object.assign(listing, changes);
     if (changes.status === "hidden") state.listings = state.listings.filter((x) => x !== listing);
-    renderListings();
+    renderFeed();
+    renderSaved();
     renderPurchases();
     if (message) toast(message);
   } catch (error) {
@@ -613,15 +955,40 @@ async function setListing(listing, changes, message = "") {
   }
 }
 
-$("filter-select").addEventListener("change", renderListings);
-$("search").addEventListener("input", renderListings);
-$("only-new").addEventListener("change", renderListings);
-for (const button of document.querySelectorAll("#view-switch button")) {
-  button.addEventListener("click", () => {
-    state.view = button.dataset.view;
-    for (const b of document.querySelectorAll("#view-switch button")) b.classList.toggle("active", b === button);
-    renderListings();
-  });
+// =====================================================================
+//  "МОИ ПОИСКИ" (список в меню и строка на телефоне)
+// =====================================================================
+function renderSaved() {
+  const counts = {};
+  for (const l of feedListings()) counts[l.filter_id] = (counts[l.filter_id] || 0) + 1;
+  const autoFilters = state.filters.filter((f) => f.platform !== "facebook");
+
+  const item = (f) => {
+    const error = (f.last_status || "").startsWith("Ошибка");
+    return el("button", {
+      class: "saved-item" + (String(f.id) === state.filterId ? " active" : "") + (error ? " error" : ""),
+      title: error ? f.last_status : f.keywords,
+      onclick: () => selectSaved(String(f.id) === state.filterId ? "" : f.id),
+    },
+      el("span", { class: "dot " + f.platform }),
+      el("span", { class: "name", text: f.keywords }),
+      el("span", { class: "num", text: error ? "!" : String(counts[f.id] || 0) }));
+  };
+  $("saved-list").replaceChildren(
+    el("button", { class: "saved-item" + (state.filterId ? "" : " active"), onclick: () => selectSaved("") },
+      el("span", { class: "dot", style: "background: var(--muted)" }), el("span", { class: "name", text: "Все поиски" })),
+    ...autoFilters.map(item),
+    ...(autoFilters.length ? [] : [el("div", { class: "muted small", style: "padding: 4px 10px", text: "Пока нет поисков" })]),
+  );
+
+  // Телефон: те же поиски — горизонтальной строкой
+  $("mobile-saved").replaceChildren(
+    el("button", { class: "chip" + (state.filterId ? "" : " active"), text: "Все поиски", onclick: () => selectSaved("") }),
+    ...autoFilters.map((f) => el("button", {
+      class: "chip" + (String(f.id) === state.filterId ? " active" : ""),
+      onclick: () => selectSaved(String(f.id) === state.filterId ? "" : f.id),
+    }, el("span", { class: "dot " + f.platform }), f.keywords)),
+  );
 }
 
 // =====================================================================
@@ -629,7 +996,6 @@ for (const button of document.querySelectorAll("#view-switch button")) {
 // =====================================================================
 function renderPurchases(force = true) {
   const items = state.listings.filter((l) => l.status === "bought" || l.status === "sold");
-  $("count-purchases").textContent = items.length;
 
   // Итоги
   const bought = items.filter((l) => l.status === "bought");
@@ -638,16 +1004,16 @@ function renderPurchases(force = true) {
   const revenue = sold.reduce((sum, l) => sum + (l.sell_price || 0), 0);
   const profit = sold.reduce((sum, l) => sum + ((l.sell_price || 0) - (l.buy_price || 0)), 0);
   const tile = (label, value, cls = "") =>
-    el("div", { class: "tile" }, el("div", { class: "label", text: label }), el("div", { class: "value " + cls, text: value }));
+    el("div", { class: "stat" }, el("div", { class: "label", text: label }), el("div", { class: "value " + cls, text: value }));
   $("tiles").replaceChildren(
-    tile("В наличии (не продано)", bought.length + " шт"),
+    tile("Ещё не продано", bought.length + " шт"),
     tile("Вложено всего", zl(spent)),
     tile("Продано на сумму", zl(revenue)),
-    tile("Чистая прибыль", (profit > 0 ? "+" : "") + zl(profit), profit > 0 ? "good" : profit < 0 ? "bad" : ""),
+    tile("Чистая прибыль", (profit > 0 ? "+" : "") + zl(profit), profit > 0 ? "good" : ""),
   );
 
   // Не перерисовываем таблицу, пока вы в ней что-то печатаете
-  if (!force && $("tab-purchases").contains(document.activeElement)) return;
+  if (!force && $("page-purchases").contains(document.activeElement)) return;
 
   const body = $("purchases-body");
   if (!items.length) {
@@ -669,14 +1035,13 @@ function purchaseRow(l) {
 
   const profitCell = el("td", { class: "nowrap" });
   const updateProfit = () => {
-    const b = Number(buy.value), s = Number(sell.value);
     if (buy.value !== "" && sell.value !== "") {
-      const p = s - b;
+      const p = Number(sell.value) - Number(buy.value);
       profitCell.textContent = (p > 0 ? "+" : "") + zl(p);
-      profitCell.className = p >= 0 ? "profit-good" : "profit-bad";
+      profitCell.className = "nowrap " + (p >= 0 ? "profit-good" : "profit-bad");
     } else {
       profitCell.textContent = "—";
-      profitCell.className = "muted";
+      profitCell.className = "nowrap muted";
     }
   };
   buy.addEventListener("input", updateProfit);
@@ -708,31 +1073,21 @@ function purchaseRow(l) {
     el("td", {}, note),
     profitCell,
     el("td", { class: "nowrap" },
-      el("button", { class: "sm", text: "Сохранить", onclick: save }), " ",
+      el("button", { class: "btn sm", text: "Сохранить", onclick: save }), " ",
       el("button", {
-        class: "danger sm", text: "Убрать", title: "Вернуть в объявления",
-        onclick: () => setListing(l, { status: "new" }, "Возвращено в «Объявления»"),
+        class: "btn sm secondary", text: "Убрать", title: "Вернуть в ленту",
+        onclick: () => setListing(l, { status: "new" }, "Возвращено в ленту"),
       })),
   );
 }
 
 // =====================================================================
-//  ФИЛЬТРЫ
+//  ПОИСКИ (ФИЛЬТРЫ)
 // =====================================================================
 function renderFilters() {
-  $("count-filters").textContent = state.filters.length;
-
-  // Выпадающий список фильтров во вкладке "Объявления"
-  const select = $("filter-select");
-  const current = select.value;
-  select.replaceChildren(el("option", { value: "", text: "Все фильтры" }),
-    ...state.filters.filter((f) => f.platform !== "facebook")
-      .map((f) => el("option", { value: String(f.id), text: (state.meta[f.platform]?.name || f.platform) + ": " + f.keywords })));
-  select.value = [...select.options].some((o) => o.value === current) ? current : "";
-
   const list = $("filter-list");
   if (!state.filters.length) {
-    list.replaceChildren(el("div", { class: "muted", text: "Пока нет ни одного фильтра — добавьте первый выше." }));
+    list.replaceChildren(el("div", { class: "muted", text: "Пока нет ни одного поиска — добавьте первый выше." }));
     return;
   }
   list.replaceChildren(...state.filters.map(filterRow));
@@ -750,9 +1105,7 @@ function filterRow(f) {
   if (f.platform === "facebook") {
     marketText = "Проверяется вручную — кнопка «Открыть поиск»";
   } else {
-    const mode = f.notify_mode === "all"
-      ? "Telegram: все новые"
-      : "Telegram: дешевле на " + f.discount_pct + "%+";
+    const mode = f.notify_mode === "all" ? "Telegram: все новые" : "Telegram: дешевле на " + f.discount_pct + "%+";
     const reference = f.resale_price
       ? "моя цена продажи " + zl(f.resale_price)
       : f.market_samples >= f.min_samples
@@ -770,17 +1123,19 @@ function filterRow(f) {
       el("div", { class: "filter-facts", text: marketText }),
       statusText ? el("div", { class: "filter-status" + (statusError ? " error" : ""), text: statusText }) : null),
     el("div", { class: "filter-actions" },
+      f.platform !== "facebook" ? el("button", { class: "btn sm", text: "Смотреть", onclick: () => selectSaved(f.id) }) : null,
       f.search_url ? el("a", {
-        class: f.platform === "facebook" ? "btn sm" : "ghost btn sm", href: f.search_url, target: "_blank", rel: "noopener",
+        class: "btn sm " + (f.platform === "facebook" ? "" : "secondary"), href: f.search_url, target: "_blank", rel: "noopener",
         text: f.platform === "facebook" ? "Открыть поиск" : "Открыть на сайте",
       }) : null,
-      el("button", { class: "ghost sm", text: "Изменить", onclick: () => startEdit(f) }),
+      el("button", { class: "btn sm secondary", text: "Изменить", onclick: () => startEdit(f) }),
       el("button", {
-        class: "danger sm", text: "Удалить",
+        class: "btn sm danger", text: "Удалить",
         onclick: async () => {
-          if (!confirm("Удалить фильтр «" + f.keywords + "»? Найденные по нему объявления тоже удалятся (покупки останутся).")) return;
+          if (!confirm("Удалить поиск «" + f.keywords + "»? Найденные по нему объявления тоже удалятся (покупки останутся).")) return;
           await api("/api/filters/" + f.id, "DELETE");
-          toast("Фильтр удалён");
+          if (String(f.id) === state.filterId) state.filterId = "";
+          toast("Поиск удалён");
           await Promise.all([loadFilters(), loadListings()]);
         },
       })),
@@ -802,7 +1157,7 @@ function onPlatformChange() {
   const notes = {
     vinted: "Vinted не умеет искать по городу — поле «Город» для него не используется.",
     facebook: "Facebook Marketplace не проверяется автоматически (нет официального API, высокий риск блокировки аккаунта). " +
-              "Фильтр сохранится, а рядом с ним появится кнопка «Открыть поиск» — она откроет Facebook с вашими условиями.",
+              "Поиск сохранится, а рядом с ним появится кнопка «Открыть поиск» — она откроет Facebook с вашими условиями.",
   };
   $("platform-note").textContent = notes[platform] || "";
   $("platform-note").classList.toggle("hidden", !notes[platform]);
@@ -825,10 +1180,10 @@ function startEdit(f) {
   $("discount_pct").value = f.discount_pct ?? 20;
   $("resale_price").value = f.resale_price ?? "";
   $("notify_mode").dispatchEvent(new Event("change"));
-  $("form-title").textContent = "Изменить фильтр «" + f.keywords + "»";
+  $("form-title").textContent = "Изменить поиск «" + f.keywords + "»";
   $("filter-submit").textContent = "Сохранить изменения";
   $("filter-cancel").classList.remove("hidden");
-  $("filter-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  openView("filters");
 }
 
 function resetForm() {
@@ -836,8 +1191,8 @@ function resetForm() {
   $("filter-form").reset();
   onPlatformChange();
   $("notify_mode").dispatchEvent(new Event("change"));
-  $("form-title").textContent = "Новый фильтр";
-  $("filter-submit").textContent = "Добавить в отслеживание";
+  $("form-title").textContent = "Новый поиск";
+  $("filter-submit").textContent = "Добавить поиск";
   $("filter-cancel").classList.add("hidden");
 }
 $("filter-cancel").addEventListener("click", resetForm);
@@ -858,10 +1213,10 @@ $("filter-form").addEventListener("submit", async (event) => {
   try {
     if (state.editingId) {
       await api("/api/filters/" + state.editingId, "PUT", data);
-      toast("Фильтр сохранён");
+      toast("Поиск сохранён");
     } else {
       await api("/api/filters", "POST", data);
-      toast(data.platform === "facebook" ? "Фильтр добавлен" : "Фильтр добавлен — нажмите «Проверить сейчас»");
+      toast(data.platform === "facebook" ? "Поиск добавлен" : "Поиск добавлен — нажмите «Проверить сейчас»");
     }
     resetForm();
     await loadFilters();
@@ -871,31 +1226,33 @@ $("filter-form").addEventListener("submit", async (event) => {
 });
 
 // =====================================================================
-//  ПРОВЕРКА СЕЙЧАС
+//  ПРОВЕРИТЬ СЕЙЧАС
 // =====================================================================
-$("check-button").addEventListener("click", async () => {
-  const button = $("check-button");
-  button.disabled = true;
-  button.textContent = "Проверяю…";
+for (const button of document.querySelectorAll(".check-button")) {
+  button.addEventListener("click", runCheck);
+}
+
+async function runCheck() {
+  const buttons = document.querySelectorAll(".check-button");
+  for (const b of buttons) { b.disabled = true; b.querySelector("span").dataset.text = b.querySelector("span").textContent; b.querySelector("span").textContent = "Проверяю…"; }
   try {
     const result = await api("/api/check", "POST");
     if (result.busy) {
       toast("Проверка уже идёт — подождите минуту.", true);
     } else if (!result.results.length) {
-      toast("Нет фильтров OLX или Vinted для проверки.", true);
+      toast("Нет поисков OLX или Vinted для проверки.", true);
     } else {
       const errors = result.results.filter((r) => !r.ok).length;
       toast("Готово. С сайтов получено: " + result.total_fetched + " · новых: " + result.total_new +
             ", выгодных: " + result.total_deals +
-            (errors ? ". С ошибкой: " + errors + " (см. вкладку «Фильтры»)" : ""), errors > 0);
+            (errors ? ". С ошибкой: " + errors + " (см. «Поиски»)" : ""), errors > 0);
     }
   } catch (error) {
     toast(error.message, true);
   }
-  button.disabled = false;
-  button.textContent = "Проверить сейчас";
+  for (const b of buttons) { b.disabled = false; b.querySelector("span").textContent = b.querySelector("span").dataset.text; }
   await Promise.all([loadFilters(), loadListings(), loadSettings(false)]);
-});
+}
 
 // =====================================================================
 //  НАСТРОЙКИ
@@ -905,15 +1262,13 @@ async function loadSettings(fillForm = true) {
   state.settings = s;
   const telegramReady = s.telegram_token && s.telegram_chat_id;
   $("status-line").textContent =
-    "Автопроверка каждые " + s.check_interval_minutes + " мин" +
-    (s.next_run ? " · следующая в " + s.next_run : "") +
-    (telegramReady ? "" : " · Telegram не настроен");
+    "Автопроверка каждые " + s.check_interval_minutes + " мин" + (s.next_run ? " · следующая в " + s.next_run : "");
 
   const note = $("setup-note");
   note.classList.toggle("hidden", !!telegramReady);
   if (!telegramReady) {
-    note.replaceChildren("Чтобы получать уведомления, заполните токен бота и chat_id во вкладке ",
-      el("a", { href: "#", text: "«Настройки»", onclick: (e) => { e.preventDefault(); openTab("settings"); } }), ".");
+    note.replaceChildren("🔔 Чтобы получать выгодные объявления в Telegram, заполните токен бота и chat_id в ",
+      el("a", { href: "#", text: "настройках", onclick: (e) => { e.preventDefault(); openView("settings"); } }), ".");
   }
 
   if (!fillForm) return;
@@ -962,13 +1317,16 @@ $("test-button").addEventListener("click", async () => {
 // =====================================================================
 async function loadFilters() {
   state.filters = await api("/api/filters");
+  if (state.filterId && !state.filters.some((f) => String(f.id) === state.filterId)) state.filterId = "";
   renderFilters();
-  renderListings();   // оценка "выгодно/нет" зависит от рыночных цен фильтров
+  renderSaved();
+  renderFeed();   // оценка "выгодно/нет" зависит от рыночных цен поисков
 }
 
 async function loadListings(forcePurchases = true) {
   state.listings = await api("/api/listings");
-  renderListings();
+  renderFeed();
+  renderSaved();
   renderPurchases(forcePurchases);
 }
 
@@ -976,12 +1334,16 @@ async function start() {
   state.meta = await api("/api/meta");
   $("platform").replaceChildren(...Object.entries(state.meta).map(([value, info]) => el("option", { value, text: info.name })));
   onPlatformChange();
+  const sort = recall("sort");
+  if (sort) $("sort").value = sort;
 
   await loadFilters();
   await Promise.all([loadListings(), loadSettings()]);
 
-  // Первая вкладка: та, что была открыта в прошлый раз; для новичка — "Фильтры"
-  openTab(recall("tab") || (state.filters.length ? "listings" : "filters"));
+  // Первая страница: та, что была открыта в прошлый раз; для новичка — "Поиски"
+  const known = ["feed", "deals", "favorite", "purchases", "filters", "settings"];
+  const saved = recall("view");
+  openView(known.includes(saved) ? saved : (state.filters.length ? "feed" : "filters"));
 
   // Каждые 30 секунд обновляем данные — вдруг таймер нашёл что-то новое
   setInterval(() => {
