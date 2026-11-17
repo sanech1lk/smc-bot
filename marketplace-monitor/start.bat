@@ -26,13 +26,13 @@ if errorlevel 1 (
   if errorlevel 1 goto failed
 )
 
-rem --- 4. Start the server and open the browser in 5 seconds ---
+rem --- 4. Start the server (it opens the browser itself when ready) ---
 echo.
-echo Starting... The browser will open http://127.0.0.1:8000 in a few seconds.
+echo Starting... The browser will open http://127.0.0.1:8000 when the server is ready.
 echo Do NOT close this window while you use the app.
 echo To stop the app: press Ctrl+C here or close this window.
 echo.
-start "" /min cmd /c "timeout /t 5 /nobreak >nul & start http://127.0.0.1:8000"
+set MM_OPEN_BROWSER=1
 venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
 echo.
 echo The server has stopped. If there is an error above, send a screenshot of this window.

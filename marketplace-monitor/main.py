@@ -8,6 +8,9 @@
 и планировщик, который проверяет объявления по таймеру.
 """
 
+import os
+import threading
+import webbrowser
 from contextlib import asynccontextmanager
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -55,6 +58,10 @@ async def lifespan(app: FastAPI):
     save_config({})  # создаёт config.json, если его ещё нет
     scheduler.start()
     schedule_job()
+    # start.bat ставит переменную MM_OPEN_BROWSER=1 — тогда открываем браузер сами,
+    # через 1.5 секунды, когда сервер уже точно принимает подключения
+    if os.environ.get("MM_OPEN_BROWSER") == "1":
+        threading.Timer(1.5, webbrowser.open, args=["http://127.0.0.1:8000"]).start()
     yield
     scheduler.shutdown(wait=False)
 
