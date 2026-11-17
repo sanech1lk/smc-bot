@@ -72,6 +72,7 @@ async def _search_kit(url: str) -> list[dict]:
             "price_value": float(item.price) if item.price else None,
             "city": "",
             "url": item.url,
+            "photo": item.photo or "",
         }
         for item in found
     ]
@@ -110,6 +111,7 @@ def _search_wrapper(keywords, min_price, max_price, category) -> list[dict]:
                 "price_value": price_value,
                 "city": "",
                 "url": url,
+                "photo": getattr(item.photo, "url", "") or "",
             }
         )
     return items

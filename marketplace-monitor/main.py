@@ -1,7 +1,7 @@
 """
 Главный файл приложения.
 
-Запуск:   uvicorn main:app --reload
+Запуск:   uvicorn main:app --reload   (или двойной щелчок по start.bat)
 Открыть:  http://127.0.0.1:8000
 
 Здесь: веб-сервер FastAPI, адреса API (к ним обращается страница index.html)
@@ -12,6 +12,7 @@ import os
 import threading
 import webbrowser
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
@@ -78,6 +79,17 @@ class FilterIn(BaseModel):
     max_price: float | None = Field(default=None, ge=0)
     city: str = Field(default="", max_length=100)
     category: str = Field(default="", max_length=100)
+    notify_mode: Literal["deals", "all"] = "deals"
+    discount_pct: float = Field(default=20, ge=1, le=95)
+    resale_price: float | None = Field(default=None, gt=0)
+
+
+class ListingUpdate(BaseModel):
+    # new = обычное, favorite = избранное, bought = куплено, sold = продано, hidden = скрыто
+    status: Literal["new", "favorite", "bought", "sold", "hidden"] | None = None
+    buy_price: float | None = Field(default=None, ge=0)
+    sell_price: float | None = Field(default=None, ge=0)
+    note: str | None = Field(default=None, max_length=500)
 
 
 class SettingsIn(BaseModel):
@@ -88,6 +100,22 @@ class SettingsIn(BaseModel):
     olx_use_playwright: bool = False
 
 
+def clean_filter(data: FilterIn) -> dict:
+    """Проверяет фильтр и превращает его в словарь для базы."""
+    if data.platform not in PLATFORMS:
+        raise HTTPException(400, "Неизвестная площадка")
+    values = data.model_dump()
+    values["keywords"] = data.keywords.strip()
+    values["city"] = "" if data.platform == "vinted" else data.city.strip()
+    if not values["keywords"]:
+        raise HTTPException(400, "Введите ключевые слова")
+    if data.min_price is not None and data.max_price is not None and data.min_price > data.max_price:
+        raise HTTPException(400, "Минимальная цена больше максимальной")
+    if data.category not in PLATFORMS[data.platform]["categories"]:
+        raise HTTPException(400, "Эта категория не подходит для выбранной площадки")
+    return values
+
+
 # ---------- Страница ----------
 
 @app.get("/")
@@ -96,7 +124,7 @@ def index():
     return FileResponse(BASE_DIR / "static" / "index.html")
 
 
-# ---------- API ----------
+# ---------- API: справочники ----------
 
 @app.get("/api/meta")
 def get_meta():
@@ -108,10 +136,15 @@ def get_meta():
     }
 
 
+# ---------- API: фильтры ----------
+
 @app.get("/api/filters")
 def list_filters():
     filters = database.get_filters()
     for f in filters:
+        # Рыночная цена и сколько объявлений в неё вошло — для подсказки в интерфейсе
+        f["market_price"], f["market_samples"] = database.market_stats(f["id"])
+        f["min_samples"] = monitor.MIN_MARKET_SAMPLES
         # Для Facebook добавляем готовую ссылку поиска — её откроет кнопка
         if f["platform"] == "facebook":
             f["search_url"] = facebook.build_search_url(
@@ -122,20 +155,15 @@ def list_filters():
 
 @app.post("/api/filters")
 def create_filter(data: FilterIn):
-    if data.platform not in PLATFORMS:
-        raise HTTPException(400, "Неизвестная площадка")
-    keywords = data.keywords.strip()
-    if not keywords:
-        raise HTTPException(400, "Введите ключевые слова")
-    if data.min_price is not None and data.max_price is not None and data.min_price > data.max_price:
-        raise HTTPException(400, "Минимальная цена больше максимальной")
-    if data.category not in PLATFORMS[data.platform]["categories"]:
-        raise HTTPException(400, "Эта категория не подходит для выбранной площадки")
+    return {"id": database.add_filter(clean_filter(data))}
 
-    filter_id = database.add_filter(
-        data.platform, keywords, data.min_price, data.max_price, data.city.strip(), data.category
-    )
-    return {"id": filter_id}
+
+@app.put("/api/filters/{filter_id}")
+def edit_filter(filter_id: int, data: FilterIn):
+    if database.get_filter(filter_id) is None:
+        raise HTTPException(404, "Фильтр не найден")
+    database.update_filter(filter_id, clean_filter(data))
+    return {"ok": True}
 
 
 @app.delete("/api/filters/{filter_id}")
@@ -150,16 +178,27 @@ def check_now():
     return monitor.check_all()
 
 
+# ---------- API: объявления и покупки ----------
+
 @app.get("/api/listings")
 def list_listings():
     return database.get_listings()
 
 
+@app.patch("/api/listings/{listing_id}")
+def change_listing(listing_id: int, data: ListingUpdate):
+    # exclude_unset — меняем только те поля, которые прислала страница
+    database.update_listing(listing_id, data.model_dump(exclude_unset=True))
+    return {"ok": True}
+
+
+# ---------- API: настройки ----------
+
 @app.get("/api/settings")
 def get_settings():
     config = load_config()
     job = scheduler.get_job(JOB_ID)
-    next_run = job.next_run_time.strftime("%H:%M:%S") if job and job.next_run_time else None
+    next_run = job.next_run_time.strftime("%H:%M") if job and job.next_run_time else None
     return {**config, "next_run": next_run, "min_interval": MIN_INTERVAL_MINUTES}
 
 

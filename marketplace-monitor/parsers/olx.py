@@ -114,6 +114,21 @@ def fetch_html_playwright(url: str) -> str:
         raise ParserError(f"OLX (Playwright): {type(error).__name__}: {error}") from error
 
 
+def photo_url(image) -> str:
+    """Ссылка на фото из тега <img>. Заглушки (картинки .svg) пропускаем."""
+    if image is None:
+        return ""
+    candidates = [image.get("src", "")]
+    # srcset: "url1 200w, url2 400w" — берём самую большую (последнюю)
+    srcset = image.get("srcset", "")
+    if srcset:
+        candidates.insert(0, srcset.split(",")[-1].strip().split(" ")[0])
+    for url in candidates:
+        if url.startswith("http") and ".svg" not in url:
+            return url
+    return ""
+
+
 def parse_html(html: str) -> list[dict]:
     """Достаёт объявления из HTML страницы поиска."""
     soup = BeautifulSoup(html, "html.parser")
@@ -145,8 +160,8 @@ def parse_html(html: str) -> list[dict]:
             item_id = match.group(1) if match else url
 
         title_tag = card.select_one("h4, h6")
-        image = card.select_one("img[alt]")
-        title = title_tag.get_text(strip=True) if title_tag else (image["alt"] if image else "")
+        image = card.select_one("img")
+        title = title_tag.get_text(strip=True) if title_tag else (image.get("alt", "") if image else "")
 
         price_tag = card.select_one('[data-testid="ad-price"]')
         price = price_tag.get_text(" ", strip=True) if price_tag else ""
@@ -164,6 +179,7 @@ def parse_html(html: str) -> list[dict]:
                 "price_value": parse_price(price),
                 "city": city,
                 "url": url,
+                "photo": photo_url(image),
             }
         )
     return items
